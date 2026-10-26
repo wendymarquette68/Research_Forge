@@ -37,4 +37,4 @@ The project plan and the article-review rubric were authored by Wendy Whitner be
 
 ## Status
 
-In active development during the hackathon. Setup and run instructions will be added as Phase 1 completes.
+Phase 1 scaffold complete. Setup: (1) Put your Meta Model API key in server/.env as MODEL_API_KEY (gitignored) - see server/.env.example. (2) npm run install:all  (3) npm run dev:server  (4) npm run dev:client, then open http://localhost:5173 in a browser. Test call: npm run test-call (needs the key).

@@ -1,0 +1,4 @@
+@import "tailwindcss";
+
+body { font-family: Georgia, "Times New Roman", serif; }
+.font-ui { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }

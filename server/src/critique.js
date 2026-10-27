@@ -126,6 +126,15 @@ export function parseFeedback(rawContent) {
   };
 }
 
+export const OVERALL_QUESTION = {
+  id: 'overall',
+  label: 'Overall judgment',
+  question:
+    'How much should a reader trust this study, and how could it be used? Give your overall judgment of the article strength, drawing together what you found in the five areas.',
+};
+
+const ALL_QUESTIONS = [...QUESTIONS, OVERALL_QUESTION];
+
 export function countWords(text) {
   const t = String(text || '').trim();
   return t ? t.split(/\s+/).length : 0;
@@ -136,7 +145,7 @@ export function validateCritiqueInput(body) {
   const title = typeof body?.title === 'string' ? body.title.trim() : '';
   const areaId = typeof body?.areaId === 'string' ? body.areaId.trim() : '';
   const answer = typeof body?.answer === 'string' ? body.answer.trim() : '';
-  const question = QUESTIONS.find((q) => q.id === areaId);
+  const question = ALL_QUESTIONS.find((q) => q.id === areaId);
   if (!question) return { error: 'Unknown critique question. Start the critique again from the first question.' };
   if (articleText.length < 500) return { error: 'The article text is missing or too short. Paste the article again.' };
   const words = countWords(answer);
@@ -151,10 +160,16 @@ export function validateCritiqueInput(body) {
         quotes: Array.isArray(rawMap.quotes) ? rawMap.quotes.filter((k) => typeof k === 'string') : [],
       }
     : null;
-  return { articleText, title, areaId, answer, question, mapArea };
+  const priorRatings = Array.isArray(body?.priorRatings)
+    ? body.priorRatings
+        .filter((r) => r && typeof r.label === 'string' && typeof r.rating === 'string')
+        .slice(0, 5)
+        .map((r) => ({ label: r.label, rating: r.rating }))
+    : [];
+  return { articleText, title, areaId, answer, question, mapArea, priorRatings };
 }
 
-function buildCritiqueMessages({ title, question, mapArea, answer, articleText, retryNote }) {
+function buildCritiqueMessages({ title, question, mapArea, answer, articleText, retryNote, priorRatings }) {
   const truncated = articleText.length > MAX_ARTICLE_CHARS;
   const text = truncated ? articleText.slice(0, MAX_ARTICLE_CHARS) : articleText;
   const system = [
@@ -176,6 +191,9 @@ function buildCritiqueMessages({ title, question, mapArea, answer, articleText, 
     '',
     'HIDDEN ARTICLE MAP FOR THIS AREA (reference only — never repeat it to the learner as an answer):',
     mapArea ? `Summary: ${mapArea.summary}\nKey points: ${mapArea.keyPoints.join('; ') || '(none)'}` : '(no map available)',
+    priorRatings && priorRatings.length
+      ? `Learner final ratings on the five areas: ${priorRatings.map((r) => `${r.label}: ${r.rating}`).join('; ')}. Judge whether the overall judgment is consistent with that pattern, without treating the ratings as the answer.`
+      : '',
     '',
     'LEARNER ANSWER:',
     answer,
@@ -194,8 +212,8 @@ function buildCritiqueMessages({ title, question, mapArea, answer, articleText, 
  * once. If it still fails, the feedback is returned without the quote,
  * clearly flagged — an unverified quote is never shown.
  */
-export async function getCritiqueFeedback({ callModel, articleText, title, areaId, mapArea, answer }) {
-  const question = QUESTIONS.find((q) => q.id === areaId);
+export async function getCritiqueFeedback({ callModel, articleText, title, areaId, mapArea, answer, priorRatings }) {
+  const question = ALL_QUESTIONS.find((q) => q.id === areaId);
   if (!question) {
     const err = new Error('Unknown critique question.');
     err.code = 'BAD_AREA';
@@ -206,7 +224,7 @@ export async function getCritiqueFeedback({ callModel, articleText, title, areaI
     const retryNote = attempt === 1
       ? 'IMPORTANT: your previous quote could not be found word for word in the article text. Copy the quote exactly, character for character, from the article text below. Choose a shorter passage if that helps.'
       : '';
-    const messages = buildCritiqueMessages({ title, question, mapArea, answer, articleText, retryNote });
+    const messages = buildCritiqueMessages({ title, question, mapArea, answer, articleText, retryNote, priorRatings });
     const result = await callModel(messages, { maxTokens: 6144 });
     lastFeedback = parseFeedback(result.content);
     if (lastFeedback.quote && verifyQuote(lastFeedback.quote, articleText).verified) {

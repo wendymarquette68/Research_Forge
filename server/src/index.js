@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { callModel, modelConfig } from './modelClient.js';
 import { buildArticleMapPrompt, parseArticleMap, validateArticleInput } from './articleMap.js';
-import { getCritiqueFeedback, validateCritiqueInput, QUESTIONS } from './critique.js';
+import { getCritiqueFeedback, validateCritiqueInput, QUESTIONS, OVERALL_QUESTION } from './critique.js';
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
@@ -55,7 +55,11 @@ app.post('/api/article-map', async (req, res) => {
 });
 
 app.get('/api/questions', (_req, res) => {
-  res.json({ ok: true, questions: QUESTIONS.map(({ id, label, question }) => ({ id, label, question })) });
+  res.json({
+    ok: true,
+    questions: QUESTIONS.map(({ id, label, question }) => ({ id, label, question })),
+    overall: { id: OVERALL_QUESTION.id, label: OVERALL_QUESTION.label, question: OVERALL_QUESTION.question },
+  });
 });
 
 // Phase 3: one critique round. The article map stays on the server side of
@@ -73,6 +77,7 @@ app.post('/api/critique', async (req, res) => {
       areaId: input.areaId,
       mapArea: input.mapArea,
       answer: input.answer,
+      priorRatings: input.priorRatings,
     });
     return res.json({ ok: true, areaId: input.areaId, feedback });
   } catch (err) {

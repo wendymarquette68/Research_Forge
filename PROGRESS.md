@@ -10,13 +10,14 @@
 - Every feedback message must quote a passage that exists word for word in the article. The server verifies each quote before it is shown.
 - This is research appraisal training for students. It is not medical advice.
 
-## Current state — Phase 3 COMPLETE (2026-10-27)
+## Current state — Phase 4 COMPLETE (2026-10-27)
 
-- Phase 1 commit `557f73b` on `main`, pushed to `https://github.com/wendymarquette68/Research_Forge`. Phase 2 committed and pushed as `bcc42aa` on `main`. Phase 3 committed and pushed as `ad65e3e` on `main`.
+- Phase 1 commit `557f73b` on `main`, pushed to `https://github.com/wendymarquette68/Research_Forge`. Phase 2 committed and pushed as `bcc42aa` on `main`. Phase 3 committed and pushed as `ad65e3e` on `main`. Phase 4 changes are in the working tree, not yet committed.
 - Scaffold built: React + TypeScript + Tailwind front end (`client/`), Node.js + Express back end (`server/`).
 - Phase 2 built: article intake (paste full text) and the five-area article map. See Verified below.
 - Phase 2 design choices (settled 2026-10-27): intake is paste full text with title/authors fields (no PDF upload, no bundled demo article); the map is AI-extracted with verbatim quotes; scope stops at the map — no coaching, no quote verification, no saved sessions, no Word export yet.
 - Phase 3 built: the guided critique loop — five questions in order, 25-word minimum answers, JSON feedback (rating, what the learner got right, one verified verbatim quote with passage reference, one follow-up), one revision per question, and server-side word-for-word quote verification with one retry. The map stays hidden from the learner during the loop. See Verified — Phase 3 below.
+- Phase 4 built: summary screen with first and revised ratings side by side, an overall-judgment question rated the same way, a Download Word document button (docx library), and browser localStorage persistence so a reload keeps the student's work. See Verified — Phase 4 below.
 
 ## Verified
 
@@ -54,13 +55,21 @@
 - Committed tests: [critique.test.js](/C:/Users/wendy/Research_Forge/server/test/critique.test.js) — 12 tests (quote verification exact/whitespace/altered, passage reference, feedback parsing, 25-word and unknown-area validation, retry-then-verified and retry-then-withheld paths), run with `npm test` in `server/` (or `npm test` at the root). All 12 pass. Client `tsc -b` and `npm run build` pass; the built bundle contains no `MODEL_API_KEY` and no `api.meta.ai` string.
 - End-to-end verified with the Sörman article — Sörman et al. (2025), "Virtual patient simulation strengthens confidence in clinical conversations among undergraduated nursing students: a randomized controlled trial," BMC Medical Education, DOI 10.1186/s12909-025-08413-y (open access, PMC12690956), pasted at 47,018 characters: the map built with all five areas; a 2-word answer was rejected with the 25-word message; all five questions returned feedback with quotes that passed server verification and an independent word-for-word recheck (ratings: Developing ×3, Proficient ×2); one revision of the first question was accepted and its rating rose from Developing to Proficient, again with a verified quote. The page and question list were also confirmed through the Vite proxy at http://localhost:5173.
 
-## What is next — Phase 4: overall judgment and Word export
+## Verified — Phase 4 (2026-10-27)
 
-- After the five questions, the learner writes one overall judgment of the article's strength, the app rates it, and the session exports as a Word document (per the README).
-- Phase 4 details are not designed yet. Before building, settle: the overall-judgment prompt and rating scale, what the Word document contains (answers, revisions, feedback, verified quotes), and how the export is generated (client or server). Do not add saved sessions until their own phase, if ever — storage is still none on the server.
+- Overall judgment: `areaId: 'overall'` on the existing `POST /api/critique`, with `OVERALL_QUESTION` in [critique.js](/C:/Users/wendy/Research_Forge/server/src/critique.js) ("How much should a reader trust this study, and how could it be used?"). Same 25-word minimum, same rating scale, same verified-quote rule with one retry and flagged withholding. The learner's five final ratings are sent as context so the coach can judge consistency. `GET /api/questions` now also returns the overall question. Server tests grew to 14, all passing.
+- Summary screen ([App.tsx](/C:/Users/wendy/Research_Forge/client/src/App.tsx)): after the fifth question, a table shows each question with its first and revised ratings side by side, then the overall-judgment box and its feedback, then the Download Word document button (enabled once the overall judgment is submitted).
+- Word export ([exportDoc.ts](/C:/Users/wendy/Research_Forge/client/src/exportDoc.ts), `docx` library, generated in the browser — still no server storage): article title and authors, each question with first and revised answers, ratings, what the learner got right, the quoted passages with their passage references, follow-up questions, and the overall judgment with its rating and quote. Verified quotes only; a withheld quote is recorded as withheld, never invented.
+- Persistence ([session.ts](/C:/Users/wendy/Research_Forge/client/src/session.ts)): the full session — article text, hidden map, answers and revisions, ratings, drafts, and the overall judgment — is saved to browser localStorage on every change and restored on load. Corrupt or outdated saved data is ignored safely. "Critique another article" clears it. Nothing is stored on the server.
+- End-to-end verified with the Sörman et al. (2025) article (same text as Phase 3): map built; all five critiques returned verified quotes (Developing ×3, Proficient ×2); one revision accepted (Proficient, verified); the overall judgment returned Proficient with a quote that passed server verification and the independent recheck. The Word document was then generated from that exact session by the real client export module: it opened as a valid .docx and its text contains the article title and authors, all five questions, first and revised answers and ratings, every quoted passage, and the overall judgment. The persistence round-trip was verified with the real session module (saved session parses back identically, stage "summary", attempt counts 2,1,1,1,1; corrupt data returns null). The summary page and the overall question were also confirmed through the Vite proxy at http://localhost:5173. Not directly observed: a literal browser reload and a click on the download button — no browser automation was driven in this environment; the reload path is covered by the storage round-trip above plus the passing build.
+
+## What is next
+
+- The README flow is now complete end to end: intake, hidden map, five-question critique, overall judgment, Word export. Remaining ideas, none designed or scheduled: whether the overall judgment should also allow one revision, and any pre-submission polish (demo script, README screenshots). Do not start either without a new instruction.
 
 ## Session log
 
 - 2026-10-26 — Phase 1: scaffolded client and server, wired server-only key, ran and passed the test call (after raising the budget to 1024), committed and pushed `557f73b` on `main`. Created this file.
 - 2026-10-27 — Phase 2: settled design (paste intake, AI-extracted map with quotes, map-only scope), built `POST /api/article-map` and the intake/map UI, verified build plus a live end-to-end map. Committed and pushed as `bcc42aa` on `main`.
 - 2026-10-27 — Phase 3: built the guided critique loop (`GET /api/questions`, `POST /api/critique`, hidden map, quote verification with one retry and flagged withholding), added 12 committed server tests, verified end to end with the Sörman et al. (2025) article (all five questions, verified quotes, one revision). Committed and pushed as `ad65e3e` on `main`.
+- 2026-10-27 — Phase 4: built the summary screen with side-by-side ratings, the overall judgment (same verified-quote feedback), Word export with the `docx` library, and localStorage persistence. Server tests now 14. Verified end to end with the Sörman article including a generated .docx containing the full critique and a storage round-trip. Not yet committed.

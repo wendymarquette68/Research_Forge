@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   QUESTIONS,
+  OVERALL_QUESTION,
   verifyQuote,
   findPassageReference,
   parseFeedback,
@@ -82,6 +83,21 @@ test('validateCritiqueInput rejects an unknown area', () => {
   assert.match(bad.error, /question/i);
 });
 
+test('overall judgment is a valid critique target with the same word minimum', () => {
+  assert.equal(OVERALL_QUESTION.id, 'overall');
+  assert.match(OVERALL_QUESTION.question, /trust/i);
+  const short = validateCritiqueInput({ articleText: PADDED_ARTICLE, areaId: 'overall', answer: 'I trust it.' });
+  assert.match(short.error, /25 words/);
+  const ok = validateCritiqueInput({
+    articleText: PADDED_ARTICLE,
+    areaId: 'overall',
+    answer: LONG_ANSWER,
+    priorRatings: [{ label: 'Methods', rating: 'Developing' }],
+  });
+  assert.equal(ok.error, undefined);
+  assert.deepEqual(ok.priorRatings, [{ label: 'Methods', rating: 'Developing' }]);
+});
+
 function fakeModel(replies) {
   let calls = 0;
   return {
@@ -119,6 +135,21 @@ test('getCritiqueFeedback retries once when the first quote fails verification',
   assert.equal(fb.quoteVerified, true);
   assert.match(fb.quote, /randomly assigned/);
   assert.match(fb.quoteReference, /Passage/);
+});
+
+test('getCritiqueFeedback handles the overall judgment', async () => {
+  const fake = fakeModel([GOOD_QUOTE_FEEDBACK]);
+  const fb = await getCritiqueFeedback({
+    callModel: fake.callModel,
+    articleText: ARTICLE,
+    title: 'Walking trial',
+    areaId: 'overall',
+    mapArea: null,
+    answer: LONG_ANSWER,
+    priorRatings: [{ label: 'Methods', rating: 'Developing' }],
+  });
+  assert.equal(fb.quoteVerified, true);
+  assert.equal(fb.rating, 'Proficient');
 });
 
 test('getCritiqueFeedback drops and flags the quote when the retry still fails', async () => {

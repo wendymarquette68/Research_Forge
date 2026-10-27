@@ -1,4 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  clearSession,
+  loadSession,
+  saveSession,
+  type StoredAttempt,
+} from './session';
+import { buildCritiqueDocxBlob, critiqueFilename, downloadBlob } from './exportDoc';
 
 type Health = { ok: boolean; model: string; baseUrl: string; hasKey: boolean };
 
@@ -37,7 +44,14 @@ type CritiqueResponse =
   | { ok: true; areaId: string; feedback: Feedback }
   | { ok: false; error?: string; code?: string };
 
-type Attempt = { answer: string; feedback: Feedback };
+type Attempt = StoredAttempt;
+
+const FALLBACK_OVERALL: Question = {
+  id: 'overall',
+  label: 'Overall judgment',
+  question:
+    'How much should a reader trust this study, and how could it be used? Give your overall judgment of the article strength, drawing together what you found in the five areas.',
+};
 
 const MIN_CHARS = 500;
 const MIN_WORDS = 25;
@@ -65,22 +79,29 @@ export default function App() {
   const [health, setHealth] = useState<Health | null>(null);
   const [healthError, setHealthError] = useState('');
   const [questions, setQuestions] = useState<Question[]>(FALLBACK_QUESTIONS);
+  const [overallQuestion, setOverallQuestion] = useState<Question>(FALLBACK_OVERALL);
 
-  const [title, setTitle] = useState('');
-  const [authors, setAuthors] = useState('');
-  const [text, setText] = useState('');
+  // Restored once on load: a page reload keeps the student's work.
+  const [restored] = useState(loadSession);
+
+  const [title, setTitle] = useState(restored?.title ?? '');
+  const [authors, setAuthors] = useState(restored?.authors ?? '');
+  const [text, setText] = useState(restored?.text ?? '');
 
   // The map is the hidden judging reference. It is held in state and sent
   // back per question, but it is never shown to the learner during the loop.
-  const [map, setMap] = useState<ArticleMap | null>(null);
-  const [stage, setStage] = useState<'intake' | 'loop' | 'done'>('intake');
+  const [map, setMap] = useState<ArticleMap | null>(restored?.map ?? null);
+  const [stage, setStage] = useState<'intake' | 'loop' | 'summary'>(restored?.stage ?? 'intake');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const [current, setCurrent] = useState(0);
-  const [attempts, setAttempts] = useState<Attempt[][]>([]);
-  const [draft, setDraft] = useState('');
+  const [current, setCurrent] = useState(restored?.current ?? 0);
+  const [attempts, setAttempts] = useState<Attempt[][]>(restored?.attempts ?? []);
+  const [draft, setDraft] = useState(restored?.draft ?? '');
   const [revising, setRevising] = useState(false);
+  const [overall, setOverall] = useState<Attempt | null>(restored?.overall ?? null);
+  const [overallDraft, setOverallDraft] = useState(restored?.overallDraft ?? '');
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     fetch('/api/health')
@@ -89,9 +110,33 @@ export default function App() {
       .catch(() => setHealthError('Back end not reachable. Start it with npm run dev:server.'));
     fetch('/api/questions')
       .then((r) => r.json())
-      .then((d) => { if (d?.ok && Array.isArray(d.questions) && d.questions.length === 5) setQuestions(d.questions); })
+      .then((d) => {
+        if (d?.ok && Array.isArray(d.questions) && d.questions.length === 5) setQuestions(d.questions);
+        if (d?.ok && d.overall?.question) setOverallQuestion(d.overall);
+      })
       .catch(() => { /* fallback questions above */ });
   }, []);
+
+  // Persist the whole session so a reload never wipes the student's work.
+  useEffect(() => {
+    if (!map && !text.trim() && !attempts.length && !overall) {
+      clearSession();
+      return;
+    }
+    saveSession({
+      version: 1,
+      title,
+      authors,
+      text,
+      map,
+      stage,
+      current,
+      attempts,
+      overall,
+      draft,
+      overallDraft,
+    });
+  }, [title, authors, text, map, stage, current, attempts, overall, draft, overallDraft]);
 
   const charCount = text.trim().length;
   const pasteWordCount = useMemo(() => countWords(text), [text]);
@@ -178,13 +223,74 @@ export default function App() {
     setDraft('');
     setRevising(false);
     if (current >= questions.length - 1) {
-      setStage('done');
+      setStage('summary');
     } else {
       setCurrent(current + 1);
     }
   }
 
+  const overallWords = useMemo(() => countWords(overallDraft), [overallDraft]);
+
+  async function submitOverall() {
+    if (!map) return;
+    setBusy(true);
+    setError('');
+    try {
+      const priorRatings = questions.map((q, i) => {
+        const list = attempts[i] ?? [];
+        return list.length ? { label: q.label, rating: list[list.length - 1].feedback.rating } : null;
+      }).filter(Boolean) as { label: string; rating: string }[];
+      const r = await fetch('/api/critique', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: map.article.title,
+          articleText: text,
+          areaId: 'overall',
+          mapArea: null,
+          answer: overallDraft,
+          priorRatings,
+        }),
+      });
+      const data: CritiqueResponse = await r.json();
+      if (!data.ok) {
+        setError(data.error || 'The coach could not respond. Please try again.');
+        return;
+      }
+      setOverall({ answer: overallDraft, feedback: data.feedback });
+    } catch {
+      setError('Back end not reachable. Start it with npm run dev:server, then try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadWord() {
+    if (!map) return;
+    setDownloading(true);
+    setError('');
+    try {
+      const blob = await buildCritiqueDocxBlob({
+        articleTitle: map.article.title,
+        articleAuthors: map.article.authors,
+        questions: questions.map((q, i) => ({
+          label: q.label,
+          question: q.question,
+          attempts: attempts[i] ?? [],
+        })),
+        overall,
+        overallQuestion: overallQuestion.question,
+      });
+      downloadBlob(blob, critiqueFilename(map.article.title));
+    } catch {
+      setError('The Word document could not be built. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   function startAgain() {
+    clearSession();
     setMap(null);
     setStage('intake');
     setAttempts([]);
@@ -195,6 +301,8 @@ export default function App() {
     setTitle('');
     setAuthors('');
     setText('');
+    setOverall(null);
+    setOverallDraft('');
   }
 
   return (
@@ -203,7 +311,7 @@ export default function App() {
         <div className="mx-auto flex max-w-4xl flex-wrap items-baseline justify-between gap-2 px-5 py-4">
           <h1 className="text-xl font-bold tracking-tight">ResearchForge AI</h1>
           <span className="font-ui text-xs text-stone-500">
-            Phase 3 — guided critique
+            Phase 4 — summary and export
           </span>
         </div>
       </header>
@@ -340,7 +448,7 @@ export default function App() {
                 </h3>
                 <p className="mt-2 text-[15px] leading-relaxed">{attempt.answer}</p>
                 <div
-                  className={`font-ui mt-4 inline-block border px-2 py-1 text-xs font-semibold ${RATING_STYLE[attempt.feedback.rating]}`}
+                  className={`font-ui mt-4 inline-block border px-2 py-1 text-xs font-semibold ${RATING_STYLE[attempt.feedback.rating as Feedback['rating']] ?? RATING_STYLE.Developing}`}
                 >
                   {attempt.feedback.rating}
                 </div>
@@ -434,45 +542,148 @@ export default function App() {
           </section>
         )}
 
-        {stage === 'done' && map && (
-          <section className="mt-6 border border-stone-300 bg-white p-5" aria-labelledby="done-heading">
-            <h2 id="done-heading" className="font-ui text-sm font-semibold">
-              Critique complete
+        {stage === 'summary' && map && (
+          <section className="mt-6 border border-stone-300 bg-white p-5" aria-labelledby="summary-heading">
+            <h2 id="summary-heading" className="font-ui text-sm font-semibold">
+              Critique summary
             </h2>
             <p className="mt-2 text-[15px] leading-relaxed">
-              You worked through all five questions on “{map.article.title}”. Here is how
-              the coach rated your final answer on each one.
+              “{map.article.title}”
+              {map.article.authors ? ` — ${map.article.authors}` : ''}
             </p>
-            <ol className="mt-4 space-y-2">
-              {questions.map((q, i) => {
-                const list = attempts[i] ?? [];
-                const rating = list.length ? list[list.length - 1].feedback.rating : null;
-                return (
-                  <li key={q.id} className="font-ui flex flex-wrap items-baseline justify-between gap-2 border border-stone-200 px-3 py-2 text-sm">
-                    <span>{i + 1}. {q.label}{list.length > 1 ? ' (revised)' : ''}</span>
-                    {rating && (
-                      <span className={`border px-2 py-0.5 text-xs font-semibold ${RATING_STYLE[rating]}`}>{rating}</span>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-            <p className="font-ui mt-4 text-sm text-stone-600">
-              Next step, in a later phase: you will write one overall judgment of the
-              article&apos;s strength and export the session. That is not built yet.
+
+            <div className="font-ui mt-4 overflow-x-auto">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-stone-300 text-stone-500">
+                    <th className="py-2 pr-3 font-medium">Question</th>
+                    <th className="py-2 pr-3 font-medium">First rating</th>
+                    <th className="py-2 font-medium">Revised rating</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {questions.map((q, i) => {
+                    const list = attempts[i] ?? [];
+                    const first = list[0]?.feedback.rating;
+                    const revised = list[1]?.feedback.rating;
+                    return (
+                      <tr key={q.id} className="border-b border-stone-200">
+                        <td className="py-2 pr-3">{i + 1}. {q.label}</td>
+                        <td className="py-2 pr-3">
+                          {first ? (
+                            <span className={`border px-2 py-0.5 text-xs font-semibold ${RATING_STYLE[first as Feedback['rating']]}`}>{first}</span>
+                          ) : '—'}
+                        </td>
+                        <td className="py-2">
+                          {revised ? (
+                            <span className={`border px-2 py-0.5 text-xs font-semibold ${RATING_STYLE[revised as Feedback['rating']]}`}>{revised}</span>
+                          ) : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="font-ui mt-6 text-sm font-semibold">Overall judgment</h3>
+            <p className="mt-2 text-[15px] leading-relaxed">{overallQuestion.question}</p>
+
+            {!overall && (
+              <div className="mt-3">
+                <label className="font-ui block text-sm font-medium" htmlFor="overall-text">
+                  Your overall judgment
+                </label>
+                <textarea
+                  id="overall-text"
+                  value={overallDraft}
+                  onChange={(e) => setOverallDraft(e.target.value)}
+                  rows={6}
+                  placeholder="How much should a reader trust this study, and how could it be used?"
+                  className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm leading-relaxed"
+                />
+                <p className="font-ui mt-1 text-xs text-stone-500">
+                  {overallWords} word{overallWords === 1 ? '' : 's'}
+                  {overallWords < MIN_WORDS && <span> · at least {MIN_WORDS} words needed</span>}
+                </p>
+                {error && (
+                  <div className="font-ui mt-3 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
+                    {error}
+                  </div>
+                )}
+                <button
+                  onClick={submitOverall}
+                  disabled={busy || overallWords < MIN_WORDS}
+                  className="font-ui mt-4 bg-stone-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {busy ? 'Coach is reading…' : 'Submit overall judgment'}
+                </button>
+              </div>
+            )}
+
+            {overall && (
+              <div className="mt-3 border border-stone-200 p-4">
+                <p className="text-[15px] leading-relaxed">{overall.answer}</p>
+                <div className={`font-ui mt-3 inline-block border px-2 py-1 text-xs font-semibold ${RATING_STYLE[overall.feedback.rating as Feedback['rating']]}`}>
+                  {overall.feedback.rating}
+                </div>
+                <p className="mt-3 text-[15px] leading-relaxed">
+                  <span className="font-ui text-sm font-semibold">What you got right: </span>
+                  {overall.feedback.gotRight}
+                </p>
+                {overall.feedback.quoteVerified && overall.feedback.quote ? (
+                  <figure className="mt-4">
+                    <blockquote className="border-l-2 border-stone-400 bg-stone-50 px-4 py-3 text-[15px] italic leading-relaxed">
+                      “{overall.feedback.quote}”
+                    </blockquote>
+                    <figcaption className="font-ui mt-1 text-xs text-stone-500">
+                      {overall.feedback.quoteReference} · verified word for word in your pasted article
+                    </figcaption>
+                  </figure>
+                ) : (
+                  <p className="font-ui mt-4 border border-amber-700 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
+                    {overall.feedback.quoteFlag || 'No verified quote was available for this feedback.'}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {error && overall && (
+              <div className="font-ui mt-4 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
+                {error}
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={downloadWord}
+                disabled={!overall || downloading}
+                className="font-ui bg-stone-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              >
+                {downloading ? 'Building document…' : 'Download Word document'}
+              </button>
+              <button
+                onClick={startAgain}
+                className="font-ui border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700"
+              >
+                Critique another article
+              </button>
+            </div>
+            {!overall && (
+              <p className="font-ui mt-2 text-xs text-stone-500">
+                Submit your overall judgment first — the Word document includes it.
+              </p>
+            )}
+            <p className="font-ui mt-3 text-xs text-stone-500">
+              Your work is saved in this browser as you go. Reloading the page will not wipe it.
             </p>
-            <button
-              onClick={startAgain}
-              className="font-ui mt-5 bg-stone-900 px-4 py-2 text-sm font-medium text-white"
-            >
-              Critique another article
-            </button>
           </section>
         )}
 
         <p className="font-ui mt-8 text-xs leading-relaxed text-stone-500">
-          The article, its hidden map, and your answers stay in this browser tab only.
-          Nothing is saved on a server. The API key lives only in <code>server/.env</code>
+          The article, its hidden map, and your answers are saved only in this browser
+          (localStorage), so a reload keeps your work. Nothing is saved on a server.
+          The API key lives only in <code>server/.env</code>
           {' '}on the back end and never appears in this front end. Research appraisal
           training — not medical advice.
         </p>

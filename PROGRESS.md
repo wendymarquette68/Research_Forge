@@ -12,7 +12,7 @@
 
 ## Current state — Phase 2 COMPLETE (2026-10-27)
 
-- Phase 1 commit `557f73b` on `main`, pushed to `https://github.com/wendymarquette68/Research_Forge`. Phase 2 changes are in the working tree, not yet committed.
+- Phase 1 commit `557f73b` on `main`, pushed to `https://github.com/wendymarquette68/Research_Forge`. Phase 2 committed and pushed as `bcc42aa` on `main`.
 - Scaffold built: React + TypeScript + Tailwind front end (`client/`), Node.js + Express back end (`server/`).
 - Phase 2 built: article intake (paste full text) and the five-area article map. See Verified below.
 - Phase 2 design choices (settled 2026-10-27): intake is paste full text with title/authors fields (no PDF upload, no bundled demo article); the map is AI-extracted with verbatim quotes; scope stops at the map — no coaching, no quote verification, no saved sessions, no Word export yet.
@@ -53,4 +53,4 @@
 ## Session log
 
 - 2026-10-26 — Phase 1: scaffolded client and server, wired server-only key, ran and passed the test call (after raising the budget to 1024), committed and pushed `557f73b` on `main`. Created this file.
-- 2026-10-27 — Phase 2: settled design (paste intake, AI-extracted map with quotes, map-only scope), built `POST /api/article-map` and the intake/map UI, verified build plus a live end-to-end map. Changes not yet committed.
+- 2026-10-27 — Phase 2: settled design (paste intake, AI-extracted map with quotes, map-only scope), built `POST /api/article-map` and the intake/map UI, verified build plus a live end-to-end map. Committed and pushed as `bcc42aa` on `main`.

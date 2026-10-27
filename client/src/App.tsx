@@ -727,8 +727,7 @@ export default function App() {
           The article, its hidden map, and your answers are saved only in this browser
           (localStorage), so a reload keeps your work. Nothing is saved on a server.
           The API key lives only in <code>server/.env</code>
-          {' '}on the back end and never appears in this front end. Research appraisal
-          training — not medical advice.
+          {' '}on the back end and never appears in this front end.
         </p>
       </main>
     </div>

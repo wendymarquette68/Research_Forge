@@ -70,7 +70,7 @@
 
 ## What is next
 
-- Manual accessibility testing (keyboard walkthrough, one screen reader, axe run, Word-file check), then any fixes those surface.
+- Manual accessibility testing (keyboard walkthrough, one screen reader, axe run, Word-file check), then any fixes those surface. Tester-facing instructions for colleagues are at [TESTER-INSTRUCTIONS.md](/C:/Users/wendy/Research_Forge/TESTER-INSTRUCTIONS.md) (tasks, severity guide, feedback template); the accessibility checklist itself is [ACCESSIBILITY-TEST-SCRIPT.md](/C:/Users/wendy/Research_Forge/ACCESSIBILITY-TEST-SCRIPT.md).
 - The README flow is complete end to end: intake, hidden map, five-question critique, overall judgment, Word export. Remaining ideas, none designed or scheduled: whether the overall judgment should also allow one revision, and any pre-submission polish (demo script, README screenshots). Do not start either without a new instruction.
 
 ## Session log
@@ -80,3 +80,4 @@
 - 2026-10-27 — Phase 3: built the guided critique loop (`GET /api/questions`, `POST /api/critique`, hidden map, quote verification with one retry and flagged withholding), added 12 committed server tests, verified end to end with the Sörman et al. (2025) article (all five questions, verified quotes, one revision). Committed and pushed as `ad65e3e` on `main`.
 - 2026-10-27 — Phase 4: built the summary screen with side-by-side ratings, the overall judgment (same verified-quote feedback), Word export with the `docx` library, and localStorage persistence. Server tests now 14. Verified end to end with the Sörman article including a generated .docx containing the full critique and a storage round-trip. Committed and pushed as `c72be28` on `main`.
 - 2026-10-27 — Accessibility: applied WCAG 2.1 AA code fixes (contrast, skip link, focus visibility/management, live announcements, field-linked errors, table caption, Word metadata), wrote `ACCESSIBILITY-TEST-SCRIPT.md` for the manual keyboard/screen-reader/axe/Word testing still pending. Committed and pushed as `9c70a63` on `main`.
+- 2026-10-27 — Wrote `TESTER-INSTRUCTIONS.md` for colleague testing, and removed the "not medical advice" wording from app-visible surfaces (app footer and Word export text/metadata) because it does not fit the app. Both changes are in the working tree, not yet committed.

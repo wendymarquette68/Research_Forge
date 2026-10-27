@@ -15,7 +15,7 @@ Nothing is mid-flight. The accessibility code fixes toward WCAG 2.1 AA are done,
 - Nothing. Running the app needs her own two terminals (`npm run dev:server`, `npm run dev:client` from `C:\Users\wendy\Research_Forge`), then http://localhost:5173.
 
 ## ⏭️ NEXT, IN ORDER
-1. Manual accessibility testing with `ACCESSIBILITY-TEST-SCRIPT.md` (keyboard walkthrough, one screen reader, axe run, Word-file check); fix what it surfaces.
+1. Colleague testing planned for tomorrow (2026-10-28): Wendy will ask colleagues to test using `TESTER-INSTRUCTIONS.md` (tasks, severity guide, feedback template) plus `ACCESSIBILITY-TEST-SCRIPT.md`. Then fix what they find. Uncommitted working-tree changes: `TESTER-INSTRUCTIONS.md`, the PROGRESS/handoff notes, and removal of "not medical advice" wording from app-visible surfaces (app footer and Word export).
 2. Anything beyond Phase 4 is undesigned — ask before building.
 
 ## NOTES THAT SAVE REDISCOVERY

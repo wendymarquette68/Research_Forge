@@ -91,7 +91,7 @@ export function buildCritiqueDocument(input: ExportInput): Document {
   if (input.articleAuthors) children.push(body(input.articleAuthors));
   children.push(
     body(
-      'Research appraisal training. The learner wrote every answer below; the coach rated the reasoning and quoted the article. This is not medical advice.',
+      'The learner wrote every answer below; the coach rated the reasoning and quoted the article.',
     ),
   );
 
@@ -118,7 +118,7 @@ export function buildCritiqueDocument(input: ExportInput): Document {
     title: `ResearchForge critique — ${input.articleTitle || 'Untitled article'}`,
     subject: 'Research appraisal critique with coach ratings and verified article quotes',
     creator: 'ResearchForge AI',
-    description: 'The learner wrote every answer; the coach rated the reasoning and quoted the article. Research appraisal training — not medical advice.',
+    description: 'The learner wrote every answer; the coach rated the reasoning and quoted the article.',
     sections: [{ children }],
   });
 }

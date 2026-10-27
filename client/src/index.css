@@ -2,3 +2,31 @@
 
 body { font-family: Georgia, "Times New Roman", serif; }
 .font-ui { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+/* Keyboard focus must always be easy to see (WCAG 2.4.7). */
+:focus-visible {
+  outline: 3px solid #1c1917;
+  outline-offset: 2px;
+}
+
+/* On dark buttons, pair the dark outline with a light halo. */
+.bg-stone-900:focus-visible {
+  outline-color: #1c1917;
+  box-shadow: 0 0 0 5px #facc15;
+}
+
+/* Let programmatic focus targets (headings, feedback) receive focus quietly. */
+[tabindex="-1"]:focus {
+  outline: none;
+}
+[tabindex="-1"]:focus-visible {
+  outline: 3px solid #1c1917;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

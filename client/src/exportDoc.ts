@@ -114,7 +114,13 @@ export function buildCritiqueDocument(input: ExportInput): Document {
     children.push(body('No overall judgment submitted.'));
   }
 
-  return new Document({ sections: [{ children }] });
+  return new Document({
+    title: `ResearchForge critique — ${input.articleTitle || 'Untitled article'}`,
+    subject: 'Research appraisal critique with coach ratings and verified article quotes',
+    creator: 'ResearchForge AI',
+    description: 'The learner wrote every answer; the coach rated the reasoning and quoted the article. Research appraisal training — not medical advice.',
+    sections: [{ children }],
+  });
 }
 
 export async function buildCritiqueDocxBlob(input: ExportInput): Promise<Blob> {

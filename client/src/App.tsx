@@ -102,6 +102,11 @@ export default function App() {
   const [overall, setOverall] = useState<Attempt | null>(restored?.overall ?? null);
   const [overallDraft, setOverallDraft] = useState(restored?.overallDraft ?? '');
   const [downloading, setDownloading] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
+
+  function focusElement(id: string) {
+    window.setTimeout(() => document.getElementById(id)?.focus(), 50);
+  }
 
   useEffect(() => {
     fetch('/api/health')
@@ -170,6 +175,8 @@ export default function App() {
       setDraft('');
       setRevising(false);
       setStage('loop');
+      setAnnouncement('Your article is mapped. Question 1 of 5: Research question and background.');
+      focusElement('loop-heading');
     } catch {
       setError('Back end not reachable. Start it with npm run dev:server, then try again.');
     } finally {
@@ -199,12 +206,15 @@ export default function App() {
         setError(data.error || 'The coach could not respond. Please try again.');
         return;
       }
+      const feedbackIndex = currentAttempts.length;
       setAttempts((prev) => {
         const next = prev.map((list) => [...list]);
         next[current] = [...(next[current] ?? []), { answer: draft, feedback: data.feedback }];
         return next;
       });
       setRevising(false);
+      setAnnouncement(`Coach feedback received for question ${current + 1}. Rating: ${data.feedback.rating}.`);
+      focusElement(`attempt-${feedbackIndex}`);
     } catch {
       setError('Back end not reachable. Start it with npm run dev:server, then try again.');
     } finally {
@@ -216,6 +226,8 @@ export default function App() {
     setDraft(currentAttempts[0]?.answer ?? '');
     setRevising(true);
     setError('');
+    setAnnouncement('Revise your answer. You have one revision for this question.');
+    focusElement('answer-text');
   }
 
   function nextQuestion() {
@@ -224,8 +236,13 @@ export default function App() {
     setRevising(false);
     if (current >= questions.length - 1) {
       setStage('summary');
+      setAnnouncement('All five questions are complete. Your critique summary is ready. Write your overall judgment to finish.');
+      focusElement('summary-heading');
     } else {
-      setCurrent(current + 1);
+      const next = current + 1;
+      setCurrent(next);
+      setAnnouncement(`Question ${next + 1} of ${questions.length}: ${questions[next]?.label}.`);
+      focusElement('loop-heading');
     }
   }
 
@@ -258,6 +275,8 @@ export default function App() {
         return;
       }
       setOverall({ answer: overallDraft, feedback: data.feedback });
+      setAnnouncement(`Overall judgment rated ${data.feedback.rating}. You can now download the Word document.`);
+      focusElement('overall-feedback');
     } catch {
       setError('Back end not reachable. Start it with npm run dev:server, then try again.');
     } finally {
@@ -269,6 +288,7 @@ export default function App() {
     if (!map) return;
     setDownloading(true);
     setError('');
+    setAnnouncement('Building your Word document.');
     try {
       const blob = await buildCritiqueDocxBlob({
         articleTitle: map.article.title,
@@ -282,6 +302,7 @@ export default function App() {
         overallQuestion: overallQuestion.question,
       });
       downloadBlob(blob, critiqueFilename(map.article.title));
+      setAnnouncement('Word document downloaded.');
     } catch {
       setError('The Word document could not be built. Please try again.');
     } finally {
@@ -307,16 +328,25 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900">
+      <a
+        href="#main-content"
+        className="font-ui sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-stone-900 focus:underline"
+      >
+        Skip to main content
+      </a>
+      <div className="sr-only" role="status" aria-live="polite">
+        {announcement}
+      </div>
       <header className="border-b border-stone-300 bg-white">
         <div className="mx-auto flex max-w-4xl flex-wrap items-baseline justify-between gap-2 px-5 py-4">
           <h1 className="text-xl font-bold tracking-tight">ResearchForge AI</h1>
-          <span className="font-ui text-xs text-stone-500">
+          <span className="font-ui text-xs text-stone-700">
             Phase 4 — summary and export
           </span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-5 py-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-4xl px-5 py-8">
         <p className="max-w-2xl text-[17px] leading-relaxed">
           ResearchForge coaches you to judge a scholarly article&apos;s strength. It does
           not summarise it for you, and it never writes your answer. You will work through
@@ -324,7 +354,7 @@ export default function App() {
           coach&apos;s response, and revise once if you want to.
         </p>
 
-        <p className="font-ui mt-3 text-xs text-stone-500" role="status">
+        <p className="font-ui mt-3 text-xs text-stone-700" role="status">
           {healthError && <span className="text-red-800">{healthError}</span>}
           {health && (
             <span>
@@ -337,7 +367,7 @@ export default function App() {
 
         {stage === 'intake' && (
           <section className="mt-6 border border-stone-300 bg-white p-5" aria-labelledby="intake-heading">
-            <h2 id="intake-heading" className="font-ui text-sm font-semibold">
+            <h2 id="intake-heading" tabIndex={-1} className="font-ui text-sm font-semibold">
               1. Bring in one article
             </h2>
             <p className="font-ui mt-1 text-sm text-stone-600">
@@ -355,11 +385,11 @@ export default function App() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Effects of a walking programme on blood pressure in older adults"
-              className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm"
+              className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm placeholder:text-stone-600"
             />
 
             <label className="font-ui mt-4 block text-sm font-medium" htmlFor="article-authors">
-              Authors <span className="font-normal text-stone-500">(optional)</span>
+              Authors <span className="font-normal text-stone-700">(optional)</span>
             </label>
             <input
               id="article-authors"
@@ -367,7 +397,7 @@ export default function App() {
               value={authors}
               onChange={(e) => setAuthors(e.target.value)}
               placeholder="e.g. Smith J, Doe A, Lee K"
-              className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm"
+              className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm placeholder:text-stone-600"
             />
 
             <label className="font-ui mt-4 block text-sm font-medium" htmlFor="article-text">
@@ -379,9 +409,11 @@ export default function App() {
               onChange={(e) => setText(e.target.value)}
               rows={14}
               placeholder="Paste the article text here…"
-              className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm leading-relaxed"
+              aria-describedby={error ? 'article-text-hint intake-error' : 'article-text-hint'}
+              aria-invalid={error ? true : undefined}
+              className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm leading-relaxed placeholder:text-stone-600"
             />
-            <p className="font-ui mt-1 text-xs text-stone-500">
+            <p id="article-text-hint" className="font-ui mt-1 text-xs text-stone-700">
               {charCount.toLocaleString()} characters · {pasteWordCount.toLocaleString()} words
               {charCount < MIN_CHARS && (
                 <span> · paste at least {MIN_CHARS} characters to start</span>
@@ -389,7 +421,7 @@ export default function App() {
             </p>
 
             {error && (
-              <div className="font-ui mt-4 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
+              <div id="intake-error" className="font-ui mt-4 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
                 {error}
               </div>
             )}
@@ -398,6 +430,7 @@ export default function App() {
               <button
                 onClick={buildMap}
                 disabled={!canBuild}
+                aria-describedby="article-text-hint"
                 className="font-ui bg-stone-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 {busy ? 'Reading the article…' : 'Start the critique'}
@@ -414,11 +447,11 @@ export default function App() {
         {stage === 'loop' && map && question && (
           <section className="mt-6" aria-labelledby="loop-heading">
             <div className="border border-stone-300 bg-white p-5">
-              <p className="font-ui text-xs text-stone-500">
+              <p className="font-ui text-xs text-stone-700">
                 {map.article.title}
                 {map.article.authors ? ` — ${map.article.authors}` : ''}
               </p>
-              <h2 id="loop-heading" className="font-ui mt-2 text-sm font-semibold">
+              <h2 id="loop-heading" tabIndex={-1} className="font-ui mt-2 text-sm font-semibold">
                 Question {current + 1} of {questions.length} — {question.label}
               </h2>
               <ol className="font-ui mt-3 flex flex-wrap gap-2" aria-label="Progress">
@@ -428,7 +461,8 @@ export default function App() {
                   return (
                     <li
                       key={q.id}
-                      className={`border px-2 py-1 text-xs ${i === current ? 'border-stone-900 bg-stone-900 text-white' : done ? 'border-stone-300 bg-stone-50 text-stone-700' : 'border-stone-300 bg-white text-stone-500'}`}
+                      aria-current={i === current ? 'step' : undefined}
+                      className={`border px-2 py-1 text-xs ${i === current ? 'border-stone-900 bg-stone-900 text-white' : done ? 'border-stone-300 bg-stone-50 text-stone-700' : 'border-stone-300 bg-white text-stone-700'}`}
                     >
                       {i + 1}. {q.label}{rating ? ` · ${rating}` : ''}
                     </li>
@@ -436,14 +470,14 @@ export default function App() {
                 })}
               </ol>
               <p className="mt-4 text-[17px] leading-relaxed">{question.question}</p>
-              <p className="font-ui mt-2 text-xs text-stone-500">
+              <p className="font-ui mt-2 text-xs text-stone-700">
                 Write at least {MIN_WORDS} words. You get one revision after the coach responds.
               </p>
             </div>
 
             {currentAttempts.map((attempt, i) => (
-              <div key={i} className="mt-4 border border-stone-300 bg-white p-5">
-                <h3 className="font-ui text-xs font-semibold text-stone-500">
+              <div key={i} id={`attempt-${i}`} tabIndex={-1} className="mt-4 border border-stone-300 bg-white p-5">
+                <h3 className="font-ui text-xs font-semibold text-stone-700">
                   {i === 0 ? 'Your answer' : 'Your revision'}
                 </h3>
                 <p className="mt-2 text-[15px] leading-relaxed">{attempt.answer}</p>
@@ -461,7 +495,7 @@ export default function App() {
                     <blockquote className="border-l-2 border-stone-400 bg-stone-50 px-4 py-3 text-[15px] italic leading-relaxed">
                       “{attempt.feedback.quote}”
                     </blockquote>
-                    <figcaption className="font-ui mt-1 text-xs text-stone-500">
+                    <figcaption className="font-ui mt-1 text-xs text-stone-700">
                       {attempt.feedback.quoteReference} · verified word for word in your pasted article
                     </figcaption>
                   </figure>
@@ -478,7 +512,7 @@ export default function App() {
             ))}
 
             {error && (
-              <div className="font-ui mt-4 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
+              <div id="critique-error" className="font-ui mt-4 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
                 {error}
               </div>
             )}
@@ -494,15 +528,18 @@ export default function App() {
                   onChange={(e) => setDraft(e.target.value)}
                   rows={7}
                   placeholder="Write your judgment in your own words…"
-                  className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm leading-relaxed"
+                  aria-describedby={error ? 'answer-hint critique-error' : 'answer-hint'}
+                  aria-invalid={error ? true : undefined}
+                  className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm leading-relaxed placeholder:text-stone-600"
                 />
-                <p className="font-ui mt-1 text-xs text-stone-500">
+                <p id="answer-hint" className="font-ui mt-1 text-xs text-stone-700">
                   {draftWords} word{draftWords === 1 ? '' : 's'}
                   {draftWords < MIN_WORDS && <span> · at least {MIN_WORDS} words needed</span>}
                 </p>
                 <button
                   onClick={submitAnswer}
                   disabled={busy || draftWords < MIN_WORDS}
+                  aria-describedby="answer-hint"
                   className="font-ui mt-4 bg-stone-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                 >
                   {busy ? 'Coach is reading…' : revising ? 'Submit revision' : 'Submit answer'}
@@ -544,7 +581,7 @@ export default function App() {
 
         {stage === 'summary' && map && (
           <section className="mt-6 border border-stone-300 bg-white p-5" aria-labelledby="summary-heading">
-            <h2 id="summary-heading" className="font-ui text-sm font-semibold">
+            <h2 id="summary-heading" tabIndex={-1} className="font-ui text-sm font-semibold">
               Critique summary
             </h2>
             <p className="mt-2 text-[15px] leading-relaxed">
@@ -554,11 +591,14 @@ export default function App() {
 
             <div className="font-ui mt-4 overflow-x-auto">
               <table className="w-full border-collapse text-left text-sm">
+                <caption className="sr-only">
+                  Coach ratings for the five critique questions, first answer and revision side by side
+                </caption>
                 <thead>
-                  <tr className="border-b border-stone-300 text-stone-500">
-                    <th className="py-2 pr-3 font-medium">Question</th>
-                    <th className="py-2 pr-3 font-medium">First rating</th>
-                    <th className="py-2 font-medium">Revised rating</th>
+                  <tr className="border-b border-stone-300 text-stone-700">
+                    <th scope="col" className="py-2 pr-3 font-medium">Question</th>
+                    <th scope="col" className="py-2 pr-3 font-medium">First rating</th>
+                    <th scope="col" className="py-2 font-medium">Revised rating</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -600,20 +640,23 @@ export default function App() {
                   onChange={(e) => setOverallDraft(e.target.value)}
                   rows={6}
                   placeholder="How much should a reader trust this study, and how could it be used?"
-                  className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm leading-relaxed"
+                  aria-describedby={error ? 'overall-hint overall-error' : 'overall-hint'}
+                  aria-invalid={error ? true : undefined}
+                  className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm leading-relaxed placeholder:text-stone-600"
                 />
-                <p className="font-ui mt-1 text-xs text-stone-500">
+                <p id="overall-hint" className="font-ui mt-1 text-xs text-stone-700">
                   {overallWords} word{overallWords === 1 ? '' : 's'}
                   {overallWords < MIN_WORDS && <span> · at least {MIN_WORDS} words needed</span>}
                 </p>
                 {error && (
-                  <div className="font-ui mt-3 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
+                  <div id="overall-error" className="font-ui mt-3 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
                     {error}
                   </div>
                 )}
                 <button
                   onClick={submitOverall}
                   disabled={busy || overallWords < MIN_WORDS}
+                  aria-describedby="overall-hint"
                   className="font-ui mt-4 bg-stone-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                 >
                   {busy ? 'Coach is reading…' : 'Submit overall judgment'}
@@ -622,7 +665,7 @@ export default function App() {
             )}
 
             {overall && (
-              <div className="mt-3 border border-stone-200 p-4">
+              <div id="overall-feedback" tabIndex={-1} className="mt-3 border border-stone-200 p-4">
                 <p className="text-[15px] leading-relaxed">{overall.answer}</p>
                 <div className={`font-ui mt-3 inline-block border px-2 py-1 text-xs font-semibold ${RATING_STYLE[overall.feedback.rating as Feedback['rating']]}`}>
                   {overall.feedback.rating}
@@ -636,7 +679,7 @@ export default function App() {
                     <blockquote className="border-l-2 border-stone-400 bg-stone-50 px-4 py-3 text-[15px] italic leading-relaxed">
                       “{overall.feedback.quote}”
                     </blockquote>
-                    <figcaption className="font-ui mt-1 text-xs text-stone-500">
+                    <figcaption className="font-ui mt-1 text-xs text-stone-700">
                       {overall.feedback.quoteReference} · verified word for word in your pasted article
                     </figcaption>
                   </figure>
@@ -670,17 +713,17 @@ export default function App() {
               </button>
             </div>
             {!overall && (
-              <p className="font-ui mt-2 text-xs text-stone-500">
+              <p className="font-ui mt-2 text-xs text-stone-700">
                 Submit your overall judgment first — the Word document includes it.
               </p>
             )}
-            <p className="font-ui mt-3 text-xs text-stone-500">
+            <p className="font-ui mt-3 text-xs text-stone-700">
               Your work is saved in this browser as you go. Reloading the page will not wipe it.
             </p>
           </section>
         )}
 
-        <p className="font-ui mt-8 text-xs leading-relaxed text-stone-500">
+        <p className="font-ui mt-8 text-xs leading-relaxed text-stone-700">
           The article, its hidden map, and your answers are saved only in this browser
           (localStorage), so a reload keeps your work. Nothing is saved on a server.
           The API key lives only in <code>server/.env</code>

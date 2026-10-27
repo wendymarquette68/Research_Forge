@@ -7,7 +7,8 @@ services:
     name: researchforge-ai
     env: node
     branch: main
-    buildCommand: npm run install:all && npm run build
+    # Build tools (Vite/TypeScript) are needed even with NODE_ENV=production.
+    buildCommand: npm --prefix server install --include=dev && npm --prefix client install --include=dev && npm run build
     startCommand: npm --prefix server run start
     healthCheckPath: /api/health
     envVars:

@@ -10,11 +10,12 @@
 - Every feedback message must quote a passage that exists word for word in the article. The server verifies each quote before it is shown.
 - This is research appraisal training for students. It is not medical advice.
 
-## Current state — Phase 1 COMPLETE (2026-10-26)
+## Current state — Phase 2 COMPLETE (2026-10-27)
 
-- Commit `557f73b` on `main`, pushed to `https://github.com/wendymarquette68/Research_Forge`.
+- Phase 1 commit `557f73b` on `main`, pushed to `https://github.com/wendymarquette68/Research_Forge`. Phase 2 changes are in the working tree, not yet committed.
 - Scaffold built: React + TypeScript + Tailwind front end (`client/`), Node.js + Express back end (`server/`).
-- One small test call to the Meta Model API passed — see Verified below.
+- Phase 2 built: article intake (paste full text) and the five-area article map. See Verified below.
+- Phase 2 design choices (settled 2026-10-27): intake is paste full text with title/authors fields (no PDF upload, no bundled demo article); the map is AI-extracted with verbatim quotes; scope stops at the map — no coaching, no quote verification, no saved sessions, no Word export yet.
 
 ## Verified
 
@@ -36,12 +37,20 @@
 4. `npm run dev:client` — front end on http://localhost:5173, open that URL in a browser.
 5. Optional CLI check: `npm run test-call`
 
-## What is next — Phase 2: article intake and article map
+## Verified — Phase 2 (2026-10-27)
 
-- Let a student bring in one real scholarly article (intake).
-- Build the article map the coaching flow will work from: the five appraisal areas from the README — (1) research question and background, (2) methods, (3) evidence, (4) findings, (5) limitations and applicability.
-- Phase 2 details are not designed yet. Do not build coaching feedback, quote verification, sessions, or Word export until their phases — those come after the article map exists.
+- New endpoint `POST /api/article-map` in [index.js](/C:/Users/wendy/Research_Forge/server/src/index.js): validates pasted text (minimum 500 characters, clear 400 error when too short), then builds the map via [articleMap.js](/C:/Users/wendy/Research_Forge/server/src/articleMap.js). Express JSON limit raised to 1mb for pasted articles. Articles over 60,000 characters are mapped from the first 60,000 and flagged `truncated`.
+- The map always returns the five areas in order — research question and background, methods, evidence, findings, limitations and applicability — each with a neutral summary, key points, and up to two quotes the model is instructed to copy word for word. The prompt forbids judging strength or writing a student answer. Malformed model JSON returns a clean retry error, never a crash.
+- Front end ([App.tsx](/C:/Users/wendy/Research_Forge/client/src/App.tsx)): title and authors fields, full-text paste box with character/word counts, Build article map button, and the five-area map display with quoted passages. Article and map live only in the browser tab — nothing is saved.
+- Checks run: `tsc -b` passes; `npm run build` passes; live probe against the running server returned health OK, a 400 for too-short text, and a 200 map with all five areas populated. All 10 quotes in that probe matched the source text exactly (observed once — systematic quote verification is still a later phase, not built yet). Built bundle and front-end source contain no `MODEL_API_KEY` and no `api.meta.ai` string.
+- Not done yet, by design: coaching feedback, server quote verification, sessions/saving, and Word export.
+
+## What is next — Phase 3: coaching flow
+
+- Work through the five areas one at a time: the student writes an appraisal answer per area, the app responds against the article map and the article itself, and asks one follow-up. The student may revise once per question (per the README).
+- Phase 3 details are not designed yet. Before building, settle: the per-area question wording, how feedback quotes and verifies passages (the standing quote rule applies here), and how the overall final judgment and rating work. Do not build Word export until the coaching flow exists.
 
 ## Session log
 
 - 2026-10-26 — Phase 1: scaffolded client and server, wired server-only key, ran and passed the test call (after raising the budget to 1024), committed and pushed `557f73b` on `main`. Created this file.
+- 2026-10-27 — Phase 2: settled design (paste intake, AI-extracted map with quotes, map-only scope), built `POST /api/article-map` and the intake/map UI, verified build plus a live end-to-end map. Changes not yet committed.

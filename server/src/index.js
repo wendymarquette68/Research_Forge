@@ -2,12 +2,13 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { callModel, modelConfig } from './modelClient.js';
+import { buildArticleMapPrompt, parseArticleMap, validateArticleInput } from './articleMap.js';
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
 
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
-app.use(express.json({ limit: '256kb' }));
+app.use(express.json({ limit: '1mb' }));
 
 app.get('/api/health', (_req, res) => {
   const { model, baseUrl, hasKey } = modelConfig();
@@ -25,6 +26,30 @@ app.post('/api/test-call', async (_req, res) => {
   } catch (err) {
     const status = err.code === 'MISSING_API_KEY' ? 503 : err.status || 502;
     res.status(status).json({ ok: false, code: err.code || 'ERROR', error: err.message });
+  }
+});
+
+// Phase 2: build the five-area article map from pasted article text.
+// Map only — no coaching, no quote verification, no export in this phase.
+app.post('/api/article-map', async (req, res) => {
+  const input = validateArticleInput(req.body);
+  if (input.error) {
+    return res.status(400).json({ ok: false, code: 'INVALID_ARTICLE', error: input.error });
+  }
+  try {
+    const { messages, truncated } = buildArticleMapPrompt(input);
+    const result = await callModel(messages, { maxTokens: 6144 });
+    const areas = parseArticleMap(result.content);
+    return res.json({
+      ok: true,
+      model: result.model,
+      article: { title: input.title || 'Untitled article', authors: input.authors || '' },
+      truncated,
+      areas,
+    });
+  } catch (err) {
+    const status = err.code === 'MISSING_API_KEY' ? 503 : err.status || 502;
+    return res.status(status).json({ ok: false, code: err.code || 'ERROR', error: err.message });
   }
 });
 

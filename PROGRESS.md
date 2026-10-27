@@ -12,7 +12,7 @@
 
 ## Current state — Phase 4 COMPLETE (2026-10-27)
 
-- Phase 1 commit `557f73b` on `main`, pushed to `https://github.com/wendymarquette68/Research_Forge`. Phase 2 committed and pushed as `bcc42aa` on `main`. Phase 3 committed and pushed as `ad65e3e` on `main`. Phase 4 changes are in the working tree, not yet committed.
+- Phase 1 commit `557f73b` on `main`, pushed to `https://github.com/wendymarquette68/Research_Forge`. Phase 2 committed and pushed as `bcc42aa` on `main`. Phase 3 committed and pushed as `ad65e3e` on `main`. Phase 4 committed and pushed as `c72be28` on `main`.
 - Scaffold built: React + TypeScript + Tailwind front end (`client/`), Node.js + Express back end (`server/`).
 - Phase 2 built: article intake (paste full text) and the five-area article map. See Verified below.
 - Phase 2 design choices (settled 2026-10-27): intake is paste full text with title/authors fields (no PDF upload, no bundled demo article); the map is AI-extracted with verbatim quotes; scope stops at the map — no coaching, no quote verification, no saved sessions, no Word export yet.
@@ -72,4 +72,4 @@
 - 2026-10-26 — Phase 1: scaffolded client and server, wired server-only key, ran and passed the test call (after raising the budget to 1024), committed and pushed `557f73b` on `main`. Created this file.
 - 2026-10-27 — Phase 2: settled design (paste intake, AI-extracted map with quotes, map-only scope), built `POST /api/article-map` and the intake/map UI, verified build plus a live end-to-end map. Committed and pushed as `bcc42aa` on `main`.
 - 2026-10-27 — Phase 3: built the guided critique loop (`GET /api/questions`, `POST /api/critique`, hidden map, quote verification with one retry and flagged withholding), added 12 committed server tests, verified end to end with the Sörman et al. (2025) article (all five questions, verified quotes, one revision). Committed and pushed as `ad65e3e` on `main`.
-- 2026-10-27 — Phase 4: built the summary screen with side-by-side ratings, the overall judgment (same verified-quote feedback), Word export with the `docx` library, and localStorage persistence. Server tests now 14. Verified end to end with the Sörman article including a generated .docx containing the full critique and a storage round-trip. Not yet committed.
+- 2026-10-27 — Phase 4: built the summary screen with side-by-side ratings, the overall judgment (same verified-quote feedback), Word export with the `docx` library, and localStorage persistence. Server tests now 14. Verified end to end with the Sörman article including a generated .docx containing the full critique and a storage round-trip. Committed and pushed as `c72be28` on `main`.

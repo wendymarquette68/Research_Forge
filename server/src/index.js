@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { callModel, modelConfig } from './modelClient.js';
 import { buildArticleMapPrompt, parseArticleMap, validateArticleInput } from './articleMap.js';
 import { getCritiqueFeedback, validateCritiqueInput, QUESTIONS, OVERALL_QUESTION } from './critique.js';
@@ -85,6 +88,18 @@ app.post('/api/critique', async (req, res) => {
     return res.status(status).json({ ok: false, code: err.code || 'ERROR', error: err.message });
   }
 });
+
+// Production (Render): serve the built client from this same service so the
+// public link is one origin and the browser only ever calls /api/* routes.
+// In local dev there is no build being served here — Vite serves the client.
+const clientDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist');
+if (fs.existsSync(path.join(clientDist, 'index.html'))) {
+  app.use(express.static(clientDist));
+  app.get(/^\/(?!api\/).*/, (_req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+  console.log('Serving built client from client/dist.');
+}
 
 app.listen(port, () => {
   const { hasKey } = modelConfig();

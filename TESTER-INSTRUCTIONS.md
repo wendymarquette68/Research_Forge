@@ -54,7 +54,7 @@ What I did: (1–3 short steps)
 What I expected:
 What actually happened:
 How bad is it? (Blocker / Annoying / Minor — see below)
-Screenshot attached? (yes/no)
+Screenshot attached? (yes/no — please attach one for every Blocker or Annoying problem if you can; a phone photo of the screen is fine)
 ```
 
 Severity guide:
@@ -63,7 +63,7 @@ Severity guide:
 - **Annoying** — I finished, but it was confusing, slow, unfair, or hard to see/hear/use.
 - **Minor** — typos, wording, spacing, anything that just looks off.
 
-Send reports to Wendy (email or the shared doc she names). Screenshots help enormously for layout problems.
+Send reports to Wendy (email or the shared doc she names). Please include a screenshot whenever you can — it is the fastest way for us to see exactly what you saw. If a screenshot is not possible, copy the exact wording of any message you saw.
 
 ## Ground rules
 

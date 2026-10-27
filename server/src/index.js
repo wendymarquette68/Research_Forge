@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { callModel, modelConfig } from './modelClient.js';
 import { buildArticleMapPrompt, parseArticleMap, validateArticleInput } from './articleMap.js';
+import { getCritiqueFeedback, validateCritiqueInput, QUESTIONS } from './critique.js';
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
@@ -47,6 +48,33 @@ app.post('/api/article-map', async (req, res) => {
       truncated,
       areas,
     });
+  } catch (err) {
+    const status = err.code === 'MISSING_API_KEY' ? 503 : err.status || 502;
+    return res.status(status).json({ ok: false, code: err.code || 'ERROR', error: err.message });
+  }
+});
+
+app.get('/api/questions', (_req, res) => {
+  res.json({ ok: true, questions: QUESTIONS.map(({ id, label, question }) => ({ id, label, question })) });
+});
+
+// Phase 3: one critique round. The article map stays on the server side of
+// the judgement; quotes are verified word for word before they are returned.
+app.post('/api/critique', async (req, res) => {
+  const input = validateCritiqueInput(req.body);
+  if (input.error) {
+    return res.status(400).json({ ok: false, code: 'INVALID_CRITIQUE', error: input.error });
+  }
+  try {
+    const feedback = await getCritiqueFeedback({
+      callModel,
+      articleText: input.articleText,
+      title: input.title,
+      areaId: input.areaId,
+      mapArea: input.mapArea,
+      answer: input.answer,
+    });
+    return res.json({ ok: true, areaId: input.areaId, feedback });
   } catch (err) {
     const status = err.code === 'MISSING_API_KEY' ? 503 : err.status || 502;
     return res.status(status).json({ ok: false, code: err.code || 'ERROR', error: err.message });

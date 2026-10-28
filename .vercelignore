@@ -1,0 +1,7 @@
+# Never upload secrets or local state to Vercel, even on CLI deploys.
+# MODEL_API_KEY is set in the Vercel dashboard as an environment variable.
+server/.env
+node_modules
+client/node_modules
+server/node_modules
+client/dist

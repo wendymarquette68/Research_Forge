@@ -15,6 +15,30 @@ export function modelConfig() {
   return { baseUrl, model, hasKey: Boolean(process.env.MODEL_API_KEY), keyFingerprint: keyFingerprint() };
 }
 
+/** Model catalog as seen from this server's network/account context. Never exposes the key. */
+export async function listModels() {
+  const apiKey = process.env.MODEL_API_KEY;
+  if (!apiKey) {
+    const err = new Error('MODEL_API_KEY is not set in server/.env');
+    err.code = 'MISSING_API_KEY';
+    throw err;
+  }
+  const res = await fetch(`${baseUrl}/models`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = { raw: text }; }
+  if (!res.ok) {
+    const err = new Error(data?.error?.message || `Model API returned HTTP ${res.status}`);
+    err.code = data?.error?.code || 'MODEL_API_ERROR';
+    err.status = res.status;
+    err.details = data;
+    throw err;
+  }
+  return Array.isArray(data?.data) ? data.data.map((m) => m.id).filter(Boolean) : [];
+}
+
 /** One OpenAI-compatible chat completion against the Meta Model API. */
 export async function callModel(messages, { maxTokens = 64 } = {}) {
   const apiKey = process.env.MODEL_API_KEY;

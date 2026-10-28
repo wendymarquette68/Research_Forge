@@ -4,7 +4,7 @@ import cors from 'cors';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { callModel, modelConfig } from './modelClient.js';
+import { callModel, listModels, modelConfig } from './modelClient.js';
 import { buildArticleMapPrompt, parseArticleMap, validateArticleInput } from './articleMap.js';
 import { getCritiqueFeedback, validateCritiqueInput, QUESTIONS, OVERALL_QUESTION } from './critique.js';
 
@@ -17,6 +17,17 @@ app.use(express.json({ limit: '1mb' }));
 app.get('/api/health', (_req, res) => {
   const { model, baseUrl, hasKey, keyFingerprint } = modelConfig();
   res.json({ ok: true, model, baseUrl, hasKey, keyFingerprint });
+});
+
+// Diagnostic: which models this server's key/network context can see.
+app.get('/api/models', async (_req, res) => {
+  try {
+    const models = await listModels();
+    res.json({ ok: true, models });
+  } catch (err) {
+    const status = err.code === 'MISSING_API_KEY' ? 503 : err.status || 502;
+    res.status(status).json({ ok: false, code: err.code || 'ERROR', error: err.message, details: err.details || null });
+  }
 });
 
 // The one small connectivity check. No key ever leaves the server.

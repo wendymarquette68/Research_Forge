@@ -3,7 +3,7 @@
 **Last written: 2026-10-27 (evening — Wendy tired, stopping for the night. Render diagnosis complete; key experiment is tomorrow's first step.)**
 
 ## 🔴 THE ONE THING THAT WAS MID-FLIGHT
-The deployed app at https://researchforge-ai-d5jg.onrender.com (Oregon) loads and has the CORRECT key (health fingerprint `e2665bd7` = local key), but Meta returns an empty model catalog to Render's IPs (`/api/models` → `[]`; localhost with same key sees 9 models), so every model call 404s `model_not_found`. TUNNEL WORKS (2026-10-28): Wendy runs a Cloudflare quick tunnel from her PC and it was verified end to end that morning (page, 9-model catalog, Sörman map, Q1 rated Proficient with verified quote, clean bundle — details in PROGRESS.md "Render deployment"). For each testing day: `npm run build` once, `npm run dev:server` (window 1), `cloudflared tunnel --url http://localhost:8787` (window 2), share the NEW trycloudflare URL from window 2 (URLs change every run), keep PC plugged in/awake with sleep = Never. Render remains unusable while Meta gates its IPs (two valid keys see an empty catalog there); leave the Render service as-is.
+The deployed app at https://researchforge-ai-d5jg.onrender.com (Oregon) loads and has the CORRECT key (health fingerprint `e2665bd7` = local key), but Meta returns an empty model catalog to Render's IPs (`/api/models` → `[]`; localhost with same key sees 9 models), so every model call 404s `model_not_found`. VERCEL WORKS (2026-10-28): the stable public link is https://researchforge-omega.vercel.app — verified end to end (health fingerprint `e2665bd7`, 9-model catalog incl. `muse-spark-1.3`, Sörman map, Q1 answered with verified quote, clean bundle; details in PROGRESS.md "Render deployment"). Send colleagues THIS link; no tunnel, no PC-awake requirement. The Cloudflare tunnel remains a proven fallback if Vercel ever fails. Render remains unusable while Meta gates its IPs; leave that service as-is.
 
 ## ✅ DONE THIS SESSION — do not redo any of it
 - Phase 1 committed/pushed: `557f73b`. Phase 2 committed/pushed: `bcc42aa`. Phase 3 committed/pushed: `ad65e3e`, log update `4bef84d`. Phase 4 committed/pushed: `c72be28`. Accessibility fixes + test script committed/pushed: `9c70a63`.
@@ -15,8 +15,8 @@ The deployed app at https://researchforge-ai-d5jg.onrender.com (Oregon) loads an
 - Nothing. Running the app needs her own two terminals (`npm run dev:server`, `npm run dev:client` from `C:\Users\wendy\Research_Forge`), then http://localhost:5173.
 
 ## ⏭️ NEXT, IN ORDER
-1. Colleague testing via the Cloudflare tunnel (see mid-flight note above for the daily startup steps and today's verification). Email colleagues the day's tunnel URL plus `TESTER-INSTRUCTIONS.md`.
-2. Vercel (Wendy's pick for the stable host): repo is prepared and pushed as `1b035c5` (`vercel.json`, `api/index.mjs`, Express refactored to `server/src/app.js`). Wendy imports the project in Vercel, sets `MODEL_API_KEY` in Vercel Environment Variables, deploys, and shares the `*.vercel.app` URL. First check is `/api/models` (must list `muse-spark-1.3`); if empty there too, Meta gates Vercel as well and the tunnel stays the fallback.
+1. Colleague testing via the stable Vercel link https://researchforge-omega.vercel.app plus `TESTER-INSTRUCTIONS.md`. Then fix what testers find.
+2. Manual accessibility testing (`ACCESSIBILITY-TEST-SCRIPT.md`) whenever there is time.
 2. Colleague testing using `TESTER-INSTRUCTIONS.md` (tasks, severity guide, feedback template) plus `ACCESSIBILITY-TEST-SCRIPT.md`; then fix what they find. Tester instructions and the "not medical advice" removal were committed and pushed as `c19d819`.
 3. Manual accessibility testing (keyboard/screen reader/axe) is still pending whenever there is time.
 2. Anything beyond Phase 4 is undesigned — ask before building.

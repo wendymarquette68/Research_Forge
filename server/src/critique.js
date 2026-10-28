@@ -4,7 +4,7 @@
 // word for word against the pasted article text before it can be shown.
 
 export const RATINGS = ['Emerging', 'Developing', 'Proficient'];
-export const MIN_ANSWER_WORDS = 25;
+export const MIN_ANSWER_WORDS = 15;
 const MAX_ARTICLE_CHARS = 60000;
 
 export const QUESTIONS = [

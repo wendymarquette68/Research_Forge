@@ -21,7 +21,7 @@ Test article: the Sörman article (link in PROGRESS.md). Unplug the mouse for se
 
 - [ ] Headings list (NVDA: Insert+F7) reads sensibly: one H1 "ResearchForge AI", then section headings, no jumps that confuse.
 - [ ] Every form field announces its label (Article title, Authors, Full article text, Your answer, Your overall judgment).
-- [ ] The word-count / 25-word hint is announced with its field, and a too-short or failed submit announces the error.
+- [ ] The word-count / 15-word hint is announced with its field, and a too-short or failed submit announces the error.
 - [ ] Sending an answer announces that coach feedback arrived **and its rating**; the quote and its passage reference read out in order.
 - [ ] Question progress announces "Question N of 5 — <label>", and the summary table announces its caption, column headers, and each row's first vs revised rating.
 - [ ] Overall feedback, then "You can now download the Word document" are announced; after downloading, completion is announced.

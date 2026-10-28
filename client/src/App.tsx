@@ -57,7 +57,7 @@ const FALLBACK_OVERALL: Question = {
 };
 
 const MIN_CHARS = 500;
-const MIN_WORDS = 25;
+const MIN_WORDS = 15;
 
 const FALLBACK_QUESTIONS: Question[] = [
   { id: 'research-question', label: 'Research question and background', question: 'In your own words, what question does this study set out to answer, and how well does the background justify why that question matters? Point to what the authors themselves say.' },

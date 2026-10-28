@@ -31,12 +31,12 @@ Copy the article text from the page (or ask Wendy for the text file) so you can 
 ## Please do these tasks, in order
 
 1. **Start.** Paste the article text, add the title and authors, choose **Start the critique**. Note how long it takes and whether waiting was clear.
-2. **Question 1, short answer first.** Type a very short answer (under 25 words) and try to submit. What happens? Is the reason clear?
-3. **Question 1, real answer.** Write at least 25 words judging the research question and background, submit, and read the coach feedback. Check: is there a rating, a "what you got right," a quoted passage, and a follow-up question? Does the quote match the article word for word (spot-check it)?
+2. **Question 1, short answer first.** Type a very short answer (under 15 words) and try to submit. What happens? Is the reason clear?
+3. **Question 1, real answer.** Write at least 15 words judging the research question and background, submit, and read the coach feedback. Check: is there a rating, a "what you got right," a quoted passage, and a follow-up question? Does the quote match the article word for word (spot-check it)?
 4. **Revise once.** Choose **Revise once**, improve your answer, submit. Then try to revise the same question again — you should not be able to.
-5. **Questions 2–5.** Answer each one (at least 25 words). You may write plain, imperfect answers — you are testing the coach, not yourself. Watch for feedback that is unfair, repeats itself, gives away a model answer, or quotes something not in the article.
+5. **Questions 2–5.** Answer each one (at least 15 words). You may write plain, imperfect answers — you are testing the coach, not yourself. Watch for feedback that is unfair, repeats itself, gives away a model answer, or quotes something not in the article.
 6. **Reload.** Halfway through (for example on Question 3), refresh the browser page (F5). Your earlier work should still be there. Tell us if anything vanished.
-7. **Overall judgment.** After Question 5, write the overall judgment (trust and use, at least 25 words) and submit.
+7. **Overall judgment.** After Question 5, write the overall judgment (trust and use, at least 15 words) and submit.
 8. **Download.** Choose **Download Word document**, open the file in Word, and check it contains: the article title/authors, all five questions with your first and revised answers and ratings, the quotes, and your overall judgment.
 9. **If you can:** repeat part of the flow with **keyboard only** (Tab/Shift+Tab/Enter), and/or read the feedback with a screen reader. Extra credit: browser zoom at 200%.
 

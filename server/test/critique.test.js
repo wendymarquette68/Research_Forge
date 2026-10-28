@@ -86,9 +86,19 @@ test('parseFeedback rejects an unknown rating', () => {
 
 const PADDED_ARTICLE = ARTICLE + '\n\n' + 'Additional background sentence for length. '.repeat(30);
 
-test('validateCritiqueInput enforces the 25-word minimum', () => {
+test('validateCritiqueInput enforces the 15-word minimum', () => {
   const short = validateCritiqueInput({ articleText: PADDED_ARTICLE, areaId: 'methods', answer: 'Too short.' });
-  assert.match(short.error, /25 words/);
+  assert.match(short.error, /15 words/);
+  const fourteen = validateCritiqueInput({
+    articleText: PADDED_ARTICLE, areaId: 'methods',
+    answer: 'one two three four five six seven eight nine ten eleven twelve thirteen fourteen',
+  });
+  assert.match(fourteen.error, /15 words/);
+  const fifteen = validateCritiqueInput({
+    articleText: PADDED_ARTICLE, areaId: 'methods',
+    answer: 'one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen',
+  });
+  assert.equal(fifteen.error, undefined);
   const ok = validateCritiqueInput({ articleText: PADDED_ARTICLE, areaId: 'methods', answer: LONG_ANSWER });
   assert.equal(ok.error, undefined);
   assert.equal(ok.areaId, 'methods');
@@ -103,7 +113,7 @@ test('overall judgment is a valid critique target with the same word minimum', (
   assert.equal(OVERALL_QUESTION.id, 'overall');
   assert.match(OVERALL_QUESTION.question, /trust/i);
   const short = validateCritiqueInput({ articleText: PADDED_ARTICLE, areaId: 'overall', answer: 'I trust it.' });
-  assert.match(short.error, /25 words/);
+  assert.match(short.error, /15 words/);
   const ok = validateCritiqueInput({
     articleText: PADDED_ARTICLE,
     areaId: 'overall',

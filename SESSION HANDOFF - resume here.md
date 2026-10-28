@@ -16,6 +16,7 @@ The deployed app at https://researchforge-ai-d5jg.onrender.com (Oregon) loads an
 
 ## ⏭️ NEXT, IN ORDER
 1. Colleague testing via the Cloudflare tunnel (see mid-flight note above for the daily startup steps and today's verification). Email colleagues the day's tunnel URL plus `TESTER-INSTRUCTIONS.md`.
+2. Vercel (Wendy's pick for the stable host): repo is prepared and pushed as `1b035c5` (`vercel.json`, `api/index.mjs`, Express refactored to `server/src/app.js`). Wendy imports the project in Vercel, sets `MODEL_API_KEY` in Vercel Environment Variables, deploys, and shares the `*.vercel.app` URL. First check is `/api/models` (must list `muse-spark-1.3`); if empty there too, Meta gates Vercel as well and the tunnel stays the fallback.
 2. Colleague testing using `TESTER-INSTRUCTIONS.md` (tasks, severity guide, feedback template) plus `ACCESSIBILITY-TEST-SCRIPT.md`; then fix what they find. Tester instructions and the "not medical advice" removal were committed and pushed as `c19d819`.
 3. Manual accessibility testing (keyboard/screen reader/axe) is still pending whenever there is time.
 2. Anything beyond Phase 4 is undesigned — ask before building.

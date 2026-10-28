@@ -1,9 +1,9 @@
 # SESSION HANDOFF — read this first, then carry on
 
-**Last written: 2026-10-27 (Phase 4 and accessibility fixes committed/pushed).**
+**Last written: 2026-10-27 (evening — Wendy tired, stopping for the night. Render diagnosis complete; key experiment is tomorrow's first step.)**
 
 ## 🔴 THE ONE THING THAT WAS MID-FLIGHT
-Nothing is mid-flight. The accessibility code fixes toward WCAG 2.1 AA are done, build-verified, committed, and pushed as `9c70a63`. They are NOT yet manually tested with keyboard/screen reader/axe. Next step is the manual testing in `ACCESSIBILITY-TEST-SCRIPT.md` at the project root.
+The deployed app at https://researchforge-ai-d5jg.onrender.com (Oregon) loads and has the CORRECT key (health fingerprint `e2665bd7` = local key), but Meta returns an empty model catalog to Render's IPs (`/api/models` → `[]`; localhost with same key sees 9 models), so every model call 404s `model_not_found`. KEY EXPERIMENT DONE (2026-10-27 late): no restriction settings exist (Rename only). A fresh key in Render only (fingerprint `c55f03ef`) authenticates but STILL sees an empty catalog — keys are ruled out; Meta gates Render's egress IPs. Local key (`e2665bd7`) still works from home. NEXT STEP: Cloudflare Tunnel from Wendy's PC for colleague testing (steps in PROGRESS.md "Render deployment"), or try a different host and check `/api/models` before committing. When a working public link exists, run the full E2E (paste, map, one question with verified quote).
 
 ## ✅ DONE THIS SESSION — do not redo any of it
 - Phase 1 committed/pushed: `557f73b`. Phase 2 committed/pushed: `bcc42aa`. Phase 3 committed/pushed: `ad65e3e`, log update `4bef84d`. Phase 4 committed/pushed: `c72be28`. Accessibility fixes + test script committed/pushed: `9c70a63`.
@@ -15,8 +15,9 @@ Nothing is mid-flight. The accessibility code fixes toward WCAG 2.1 AA are done,
 - Nothing. Running the app needs her own two terminals (`npm run dev:server`, `npm run dev:client` from `C:\Users\wendy\Research_Forge`), then http://localhost:5173.
 
 ## ⏭️ NEXT, IN ORDER
-1. Wendy deploys to Render (README "Deploy on Render": Blueprint from `render.yaml` or manual Web Service; must set `MODEL_API_KEY` in the Render Environment tab). Then she shares the public URL and the public link gets verified end to end (paste article, map, one answered question with verified quote, overall judgment, Word download, reload persistence).
-2. Colleague testing: Wendy will ask colleagues to test using `TESTER-INSTRUCTIONS.md` (tasks, severity guide, feedback template) plus `ACCESSIBILITY-TEST-SCRIPT.md`. Then fix what they find. Tester instructions and the "not medical advice" removal from app-visible surfaces were committed and pushed as `c19d819`.
+1. TOMORROW (2026-10-28): Meta key experiment — HOW TO GET BACK TO THE KEYS: go to https://dev.meta.ai and sign in → **API keys** tab. There: (a) click the existing key (its name, or the ⋯ menu) and look for fields named Restrictions, Allowed IPs / IP allowlist, Permissions, Models, or Status — if NO such fields exist, Meta exposes no IP restriction for these keys, so skip straight to making a new key; (b) to make a new key choose **Create API key**, copy it once (it is shown only once — starts with `LLM_`). Put the new key ONLY in Render (service → Environment → `MODEL_API_KEY` → save; Render redeploys itself) and do NOT change local `server/.env`. Then tell Muse to check `/api/models` on https://researchforge-ai-d5jg.onrender.com and run the E2E if models appear. Fallback if still empty: Cloudflare Tunnel from Wendy's PC. Keys need a payment method on the Meta account before they will issue.
+2. Colleague testing using `TESTER-INSTRUCTIONS.md` (tasks, severity guide, feedback template) plus `ACCESSIBILITY-TEST-SCRIPT.md`; then fix what they find. Tester instructions and the "not medical advice" removal were committed and pushed as `c19d819`.
+3. Manual accessibility testing (keyboard/screen reader/axe) is still pending whenever there is time.
 2. Anything beyond Phase 4 is undesigned — ask before building.
 
 ## NOTES THAT SAVE REDISCOVERY

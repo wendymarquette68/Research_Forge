@@ -7,6 +7,7 @@ import {
 } from './session';
 import { buildCritiqueDocxBlob, critiqueFilename, downloadBlob } from './exportDoc';
 import { extractPdfText } from './pdfText';
+import { DEMO_ARTICLES, loadDemoArticleText, type DemoArticle } from './demoArticles';
 
 type Health = { ok: boolean; model: string; baseUrl: string; hasKey: boolean; keyFingerprint?: string | null };
 
@@ -107,6 +108,8 @@ export default function App() {
   const [announcement, setAnnouncement] = useState('');
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfNote, setPdfNote] = useState('');
+  const [demoBusy, setDemoBusy] = useState(false);
+  const [demoNote, setDemoNote] = useState('');
 
   function focusElement(id: string) {
     window.setTimeout(() => document.getElementById(id)?.focus(), 50);
@@ -150,7 +153,7 @@ export default function App() {
   const charCount = text.trim().length;
   const pasteWordCount = useMemo(() => countWords(text), [text]);
   const draftWords = useMemo(() => countWords(draft), [draft]);
-  const canBuild = !busy && !pdfBusy && charCount >= MIN_CHARS;
+  const canBuild = !busy && !pdfBusy && !demoBusy && charCount >= MIN_CHARS;
 
   const question = questions[current];
   const currentAttempts = attempts[current] ?? [];
@@ -163,6 +166,7 @@ export default function App() {
     setPdfBusy(true);
     setError('');
     setPdfNote('');
+    setDemoNote('');
     try {
       // The file is read here in the browser. It is never uploaded or stored.
       const extracted = await extractPdfText(file);
@@ -180,6 +184,26 @@ export default function App() {
       setError(err instanceof Error ? err.message : 'That PDF could not be read. Paste the article text instead.');
     } finally {
       setPdfBusy(false);
+    }
+  }
+
+  async function loadDemo(demo: DemoArticle) {
+    setDemoBusy(true);
+    setError('');
+    setPdfNote('');
+    try {
+      const articleText = await loadDemoArticleText(demo);
+      setTitle(demo.title);
+      setAuthors(demo.authors);
+      setText(articleText);
+      setDemoNote(
+        `Loaded demo article: ${demo.citation} ${demo.license} The text (${articleText.length.toLocaleString()} characters, from the Abstract through the Discussion) is in the box below — you can edit it before starting.`,
+      );
+      setAnnouncement(`Demo article loaded. ${demo.title}. Check the article text, then start the critique.`);
+    } catch {
+      setError('That demo article could not be loaded. Paste the article text or upload its PDF instead.');
+    } finally {
+      setDemoBusy(false);
     }
   }
 
@@ -354,6 +378,7 @@ export default function App() {
     setOverall(null);
     setOverallDraft('');
     setPdfNote('');
+    setDemoNote('');
   }
 
   return (
@@ -401,10 +426,50 @@ export default function App() {
               1. Bring in one article
             </h2>
             <p className="font-ui mt-1 text-sm text-stone-600">
-              Paste the full text of one real scholarly article, or upload its PDF below.
-              The app first maps the article, then asks you five questions about it. You
-              will not see the map — it is the reference your answers are judged against.
+              Paste the full text of one real scholarly article, upload its PDF below, or
+              start with a demo article. The app first maps the article, then asks you five
+              questions about it. You will not see the map — it is the reference your
+              answers are judged against.
             </p>
+
+            <div className="mt-5">
+              <h3 className="font-ui text-sm font-medium">Or start with a demo article</h3>
+              <p className="font-ui mt-1 text-xs leading-relaxed text-stone-700">
+                Two open-access articles are preloaded. Pick one and its text fills the box
+                below, where you can edit it before starting.
+              </p>
+              <ul className="mt-2 divide-y divide-stone-200 border-y border-stone-200">
+                {DEMO_ARTICLES.map((demo) => (
+                  <li key={demo.id} className="py-3">
+                    <p className="font-ui text-xs font-semibold text-stone-700">{demo.kind}</p>
+                    <p className="mt-1 text-[15px] leading-relaxed">{demo.title}</p>
+                    <p className="font-ui mt-1 text-xs leading-relaxed text-stone-700">
+                      {demo.citation} {demo.license}{' '}
+                      <a
+                        href={demo.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline"
+                      >
+                        View source
+                      </a>
+                    </p>
+                    <button
+                      onClick={() => void loadDemo(demo)}
+                      disabled={busy || pdfBusy || demoBusy}
+                      className="font-ui mt-2 border border-stone-900 bg-white px-3 py-1.5 text-sm font-medium text-stone-900 disabled:opacity-50"
+                    >
+                      {demoBusy ? 'Loading…' : 'Load this article'}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {demoNote && (
+                <p className="font-ui mt-2 text-sm leading-relaxed text-stone-800" role="status">
+                  {demoNote}
+                </p>
+              )}
+            </div>
 
             <label className="font-ui mt-5 block text-sm font-medium" htmlFor="article-title">
               Article title

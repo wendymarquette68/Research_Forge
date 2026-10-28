@@ -15,8 +15,8 @@ app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
 app.use(express.json({ limit: '1mb' }));
 
 app.get('/api/health', (_req, res) => {
-  const { model, baseUrl, hasKey } = modelConfig();
-  res.json({ ok: true, model, baseUrl, hasKey });
+  const { model, baseUrl, hasKey, keyFingerprint } = modelConfig();
+  res.json({ ok: true, model, baseUrl, hasKey, keyFingerprint });
 });
 
 // The one small connectivity check. No key ever leaves the server.
@@ -29,7 +29,7 @@ app.post('/api/test-call', async (_req, res) => {
     res.json({ ok: true, model: result.model, reply: result.content, usage: result.usage });
   } catch (err) {
     const status = err.code === 'MISSING_API_KEY' ? 503 : err.status || 502;
-    res.status(status).json({ ok: false, code: err.code || 'ERROR', error: err.message });
+    res.status(status).json({ ok: false, code: err.code || 'ERROR', error: err.message, details: err.details || null });
   }
 });
 

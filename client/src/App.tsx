@@ -7,7 +7,7 @@ import {
 } from './session';
 import { buildCritiqueDocxBlob, critiqueFilename, downloadBlob } from './exportDoc';
 
-type Health = { ok: boolean; model: string; baseUrl: string; hasKey: boolean };
+type Health = { ok: boolean; model: string; baseUrl: string; hasKey: boolean; keyFingerprint?: string | null };
 
 type MapArea = {
   id: string;
@@ -359,7 +359,7 @@ export default function App() {
           {health && (
             <span>
               Back end reachable · Model {health.model} (standard) · API key on server:{' '}
-              {health.hasKey ? 'present (value never shown)' : 'not set yet — add it to server/.env'}
+              {health.hasKey ? `present (value never shown${health.keyFingerprint ? `, fingerprint ${health.keyFingerprint}` : ''})` : 'not set yet — add it to server/.env'}
             </span>
           )}
           {!health && !healthError && <span>Checking connection…</span>}

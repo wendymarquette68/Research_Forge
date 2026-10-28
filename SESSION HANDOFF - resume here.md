@@ -1,9 +1,9 @@
 # SESSION HANDOFF — read this first, then carry on
 
-**Last written: 2026-10-27 (evening — Wendy tired, stopping for the night. Render diagnosis complete; key experiment is tomorrow's first step.)**
+**Last written: 2026-10-28 (Vercel verified live as the only host.)**
 
 ## 🔴 THE ONE THING THAT WAS MID-FLIGHT
-The deployed app at https://researchforge-ai-d5jg.onrender.com (Oregon) loads and has the CORRECT key (health fingerprint `e2665bd7` = local key), but Meta returns an empty model catalog to Render's IPs (`/api/models` → `[]`; localhost with same key sees 9 models), so every model call 404s `model_not_found`. VERCEL WORKS (2026-10-28): the stable public link is https://researchforge-omega.vercel.app — verified end to end (health fingerprint `e2665bd7`, 9-model catalog incl. `muse-spark-1.3`, Sörman map, Q1 answered with verified quote, clean bundle; details in PROGRESS.md "Render deployment"). Send colleagues THIS link; no tunnel, no PC-awake requirement. The Cloudflare tunnel remains a proven fallback if Vercel ever fails. Render remains unusable while Meta gates its IPs; leave that service as-is.
+VERCEL WORKS (2026-10-28): the stable public link is https://researchforge-omega.vercel.app — verified end to end (health fingerprint `e2665bd7`, 9-model catalog incl. `muse-spark-1.3`, Sörman map, Q1 answered with verified quote, clean bundle; details in PROGRESS.md "Deployment — Vercel"). Send colleagues THIS link; no tunnel, no PC-awake requirement. The Cloudflare tunnel remains a proven fallback if Vercel ever fails.
 
 ## ✅ DONE THIS SESSION — do not redo any of it
 - Phase 1 committed/pushed: `557f73b`. Phase 2 committed/pushed: `bcc42aa`. Phase 3 committed/pushed: `ad65e3e`, log update `4bef84d`. Phase 4 committed/pushed: `c72be28`. Accessibility fixes + test script committed/pushed: `9c70a63`.

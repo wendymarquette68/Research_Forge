@@ -39,18 +39,7 @@ The project plan and the article-review rubric were authored by Wendy Whitner be
 
 Phase 4 complete: the full flow — paste in one article, work through the five-question guided critique, write an overall judgment, and download the session as a Word document. Work is kept in the browser, so a reload does not lose it. Setup: (1) Put your Meta Model API key in server/.env as MODEL_API_KEY (gitignored) - see server/.env.example. (2) npm run install:all  (3) npm run dev:server  (4) npm run dev:client, then open http://localhost:5173 in a browser. Test call: npm run test-call (needs the key).
 
-## Deploy on Vercel (stable-link option)
+## Deploy on Vercel
 
-The repo also ships `vercel.json` plus a serverless entry at `api/index.mjs` (the same Express app, without `listen()`). Vercel serves the built client statically and routes `/api/*` to the function (60-second limit, enough for the measured model calls). Steps: Vercel dashboard → **Add New → Project** → import `wendymarquette68/Research_Forge` (branch `main`) → keep the detected settings from `vercel.json` → in **Environment Variables** add `MODEL_API_KEY` with your Meta Model API key (Vercel dashboard only, never in the repo) → **Deploy**. You get a stable `*.vercel.app` URL that never changes and needs no PC left awake. First check after deploy: open `/api/models` on the new URL — it must list `muse-spark-1.3`. If it returns an empty list, Meta is also gating Vercel's IPs and the Cloudflare-tunnel route remains the fallback.
+The repo also ships `vercel.json` plus a serverless entry at `api/index.mjs` (the same Express app, without `listen()`). Vercel serves the built client statically and routes `/api/*` to the function (60-second limit, enough for the measured model calls). Steps: Vercel dashboard → **Add New → Project** → import `wendymarquette68/Research_Forge` (branch `main`) → keep the detected settings from `vercel.json` → in **Environment Variables** add `MODEL_API_KEY` with your Meta Model API key (Vercel dashboard only, never in the repo) → **Deploy**. You get a stable `*.vercel.app` URL that never changes and needs no PC left awake. First check after deploy: open `/api/models` on the new URL — it must list `muse-spark-1.3`. Live at https://researchforge-omega.vercel.app (verified end to end; see PROGRESS.md).
 
-## Deploy on Render
-
-The repo ships a `render.yaml` blueprint. Two ways to create the service:
-
-**Blueprint (recommended):** Render dashboard → New + → Blueprint → connect `wendymarquette68/Research_Forge` → Apply. The blueprint already sets the build command `npm run install:all && npm run build`, the start command `npm --prefix server run start`, and the health check `/api/health`.
-
-**Manual Web Service:** Render dashboard → New + → Web Service → connect `wendymarquette68/Research_Forge`, branch `main`, runtime Node → Build Command `npm run install:all && npm run build` → Start Command `npm --prefix server run start` → Health Check Path `/api/health`.
-
-**Required environment variable (both ways):** in the service's Environment tab add `MODEL_API_KEY` with your Meta Model API key. Set it in Render only — never in code, the front end, or the repo. The server reads it from the environment; the browser only calls `/api/*` routes on the same origin. `NODE_ENV=production` and `NODE_VERSION=22` are set by the blueprint (add them manually on the manual path).
-
-In production the Express server serves the built client from `client/dist` and the API from the same origin, so the public Render URL is the only link testers need. Sessions persist in each tester's browser (localStorage); nothing is stored on the server. Note: on a free Render plan the service sleeps when idle, so the first visit after a pause can take up to a minute.

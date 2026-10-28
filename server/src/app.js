@@ -8,8 +8,8 @@ import { callModel, listModels, modelConfig } from './modelClient.js';
 import { buildArticleMapPrompt, parseArticleMap, validateArticleInput } from './articleMap.js';
 import { getCritiqueFeedback, validateCritiqueInput, QUESTIONS, OVERALL_QUESTION } from './critique.js';
 
-// Express app without listen(): local/Render start it via index.js,
-// Vercel imports it as a serverless function via api/index.js.
+// Express app without listen(): local start goes through index.js,
+// Vercel imports it as a serverless function via api/index.mjs.
 const app = express();
 
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
@@ -101,7 +101,7 @@ app.post('/api/critique', async (req, res) => {
   }
 });
 
-// Single-process hosting (local production / Render): serve the built
+// Single-process hosting (local production): serve the built
 // client from this same service so the public link is one origin and the
 // browser only ever calls /api/* routes. On Vercel the platform serves
 // client/dist itself and this block simply finds no dist next to the API.

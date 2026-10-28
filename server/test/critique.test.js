@@ -54,12 +54,28 @@ test('parseFeedback parses valid JSON and keeps the rating', () => {
   const f = parseFeedback(JSON.stringify({
     rating: 'Developing',
     gotRight: 'You spotted the random assignment.',
+    conceptNote: 'Random assignment means chance, not the researchers, decided who walked, so the groups start out alike.',
     quote: 'Participants were randomly assigned to a walking group or a wait-list control group.',
     quoteReference: 'Methods',
     followUp: 'What might threaten that strength?',
   }));
   assert.equal(f.rating, 'Developing');
   assert.equal(f.followUp, 'What might threaten that strength?');
+});
+
+test('parseFeedback keeps a concept note only for Emerging or Developing', () => {
+  const developing = parseFeedback(JSON.stringify({
+    rating: 'Developing', gotRight: 'x', conceptNote: 'A control group is the comparison group that does not get the programme.', quote: 'q', followUp: 'y?',
+  }));
+  assert.match(developing.conceptNote, /control group/i);
+  const proficient = parseFeedback(JSON.stringify({
+    rating: 'Proficient', gotRight: 'x', conceptNote: 'Should be dropped.', quote: 'q', followUp: 'y?',
+  }));
+  assert.equal(proficient.conceptNote, '');
+  const missing = parseFeedback(JSON.stringify({
+    rating: 'Emerging', gotRight: 'x', quote: 'q', followUp: 'y?',
+  }));
+  assert.equal(missing.conceptNote, '');
 });
 
 test('parseFeedback rejects an unknown rating', () => {
@@ -100,15 +116,21 @@ test('overall judgment is a valid critique target with the same word minimum', (
 
 function fakeModel(replies) {
   let calls = 0;
+  const seen = [];
   return {
     calls: () => calls,
-    callModel: async () => ({ model: 'fake', content: replies[Math.min(calls++, replies.length - 1)], usage: null }),
+    seen,
+    callModel: async (messages) => {
+      seen.push(messages);
+      return { model: 'fake', content: replies[Math.min(calls++, replies.length - 1)], usage: null };
+    },
   };
 }
 
 const BAD_QUOTE_FEEDBACK = JSON.stringify({
   rating: 'Developing',
   gotRight: 'You noticed the random assignment.',
+  conceptNote: 'Random assignment means chance decided the groups, so they start out alike.',
   quote: 'This sentence was never in the article at all.',
   quoteReference: 'Methods',
   followUp: 'What else could bias the comparison?',
@@ -119,6 +141,32 @@ const GOOD_QUOTE_FEEDBACK = JSON.stringify({
   quote: 'Participants were randomly assigned to a walking group or a wait-list control group.',
   quoteReference: 'Methods',
   followUp: 'What else could bias the comparison?',
+});
+const DEVELOPING_GOOD_QUOTE = JSON.stringify({
+  rating: 'Developing',
+  gotRight: 'You noticed the random assignment.',
+  conceptNote: 'A wait-list control group waits for the programme, so the walking group can be compared against people who have not walked yet.',
+  quote: 'Participants were randomly assigned to a walking group or a wait-list control group.',
+  quoteReference: 'Methods',
+  followUp: 'What else could bias the comparison?',
+});
+
+test('getCritiqueFeedback returns the concept note for Developing and asks for it in the prompt', async () => {
+  const fake = fakeModel([DEVELOPING_GOOD_QUOTE]);
+  const fb = await getCritiqueFeedback({
+    callModel: fake.callModel,
+    articleText: ARTICLE,
+    title: 'Walking trial',
+    areaId: 'methods',
+    mapArea: { summary: 'Randomised trial in two centres.', keyPoints: [], quotes: [] },
+    answer: LONG_ANSWER,
+  });
+  assert.equal(fb.rating, 'Developing');
+  assert.match(fb.conceptNote, /wait-list control group/i);
+  const promptText = fake.seen.flat().map((m) => m.content).join('\n');
+  assert.match(promptText, /conceptNote/);
+  assert.match(promptText, /Emerging or Developing/);
+  assert.match(promptText, /plain language/i);
 });
 
 test('getCritiqueFeedback retries once when the first quote fails verification', async () => {

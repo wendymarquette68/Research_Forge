@@ -44,7 +44,7 @@ function quoteBlock(attempt: StoredAttempt) {
   if (fb.quoteVerified && fb.quote) {
     return [
       new Paragraph({
-        children: [new TextRun({ text: `“${fb.quote}”`, italics: true })],
+        children: [new TextRun({ text: `“${fb.quote}”` })],
         spacing: { after: 60 },
       }),
       new Paragraph({
@@ -64,7 +64,6 @@ function quoteBlock(attempt: StoredAttempt) {
       children: [
         new TextRun({
           text: 'No quote is shown: the coach\u2019s passage could not be verified word for word in the pasted article, so it was withheld.',
-          italics: true,
         }),
       ],
       spacing: { after: 120 },
@@ -73,14 +72,19 @@ function quoteBlock(attempt: StoredAttempt) {
 }
 
 function attemptParagraphs(prefix: string, attempt: StoredAttempt) {
-  return [
+  const paragraphs = [
     heading(prefix, HeadingLevel.HEADING_3),
     labelled('Answer', attempt.answer),
     labelled('Rating', attempt.feedback.rating),
     labelled('What the learner got right', attempt.feedback.gotRight),
     ...quoteBlock(attempt),
-    labelled('Follow-up question', attempt.feedback.followUp),
   ];
+  // For Emerging or Developing, the plain-language key idea comes before the follow-up.
+  if (attempt.feedback.conceptNote && attempt.feedback.rating !== 'Proficient') {
+    paragraphs.push(labelled('Key idea', attempt.feedback.conceptNote));
+  }
+  paragraphs.push(labelled('Follow-up question', attempt.feedback.followUp));
+  return paragraphs;
 }
 
 export function buildCritiqueDocument(input: ExportInput): Document {

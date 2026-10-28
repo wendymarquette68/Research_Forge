@@ -6,6 +6,8 @@ export const STORAGE_KEY = 'researchforge-session-v1';
 export type StoredFeedback = {
   rating: string;
   gotRight: string;
+  // Optional so sessions saved before concept notes existed still load.
+  conceptNote?: string;
   quote: string | null;
   quoteReference: string | null;
   quoteVerified: boolean;

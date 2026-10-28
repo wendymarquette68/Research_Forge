@@ -118,9 +118,14 @@ export function parseFeedback(rawContent) {
     err.code = 'BAD_MODEL_RESPONSE';
     throw err;
   }
+  // A concept note is only for Emerging or Developing ratings; never keep one for Proficient.
+  const conceptNote = rating === 'Proficient'
+    ? ''
+    : (typeof parsed.conceptNote === 'string' ? parsed.conceptNote.trim() : '');
   return {
     rating,
     gotRight,
+    conceptNote,
     quote: typeof parsed.quote === 'string' ? parsed.quote.trim() : '',
     followUp,
   };
@@ -177,6 +182,7 @@ function buildCritiqueMessages({ title, question, mapArea, answer, articleText, 
     'Judge only the learner answer below, against the hidden article map excerpt and the article text.',
     'Rate the reasoning exactly one of: Emerging, Developing, Proficient. Emerging means the answer mostly retells or misses the question. Developing means it engages the article but is partial or shaky. Proficient means it makes a clear, article-grounded judgment.',
     'Say briefly what the learner got right. Do not supply the points they missed as a finished answer; your follow-up question should lead them to notice one gap themselves.',
+    'If the rating is Emerging or Developing, put a brief explanation in conceptNote before the follow-up question: in plain language, explain the one key term or concept the learner missed or used shakily (for example random assignment, a control group, sample size, or generalisability), in one or two short sentences a first-time reader can follow. Explain the term itself only — do not turn it into their answer or tell them what to write. If the rating is Proficient, conceptNote must be an empty string.',
     'Quote exactly one passage, copied word for word from the article text, that supports or challenges the learner answer. Copy it character for character. Keep it under 240 characters. Never invent or tidy up a quote.',
     'Ask exactly one follow-up question.',
     'Return only valid JSON. No markdown fences. No extra prose.',
@@ -199,7 +205,7 @@ function buildCritiqueMessages({ title, question, mapArea, answer, articleText, 
     answer,
     '',
     'Return JSON in exactly this shape:',
-    '{"rating":"Developing","gotRight":"one or two sentences on what the learner got right","quote":"one verbatim passage","quoteReference":"section or passage the quote came from","followUp":"one follow-up question"}',
+    '{"rating":"Developing","gotRight":"one or two sentences on what the learner got right","conceptNote":"for Emerging or Developing only: one or two plain-language sentences explaining the key term or concept missed; empty string for Proficient","quote":"one verbatim passage","quoteReference":"section or passage the quote came from","followUp":"one follow-up question"}',
     '',
     'ARTICLE TEXT:',
     text,
@@ -231,6 +237,7 @@ export async function getCritiqueFeedback({ callModel, articleText, title, areaI
       return {
         rating: lastFeedback.rating,
         gotRight: lastFeedback.gotRight,
+        conceptNote: lastFeedback.conceptNote,
         quote: lastFeedback.quote,
         quoteReference: findPassageReference(articleText, lastFeedback.quote),
         quoteVerified: true,
@@ -242,6 +249,7 @@ export async function getCritiqueFeedback({ callModel, articleText, title, areaI
   return {
     rating: lastFeedback.rating,
     gotRight: lastFeedback.gotRight,
+    conceptNote: lastFeedback.conceptNote,
     quote: null,
     quoteReference: null,
     quoteVerified: false,

@@ -6,6 +6,7 @@ import {
   type StoredAttempt,
 } from './session';
 import { buildCritiqueDocxBlob, critiqueFilename, downloadBlob } from './exportDoc';
+import { extractPdfText } from './pdfText';
 
 type Health = { ok: boolean; model: string; baseUrl: string; hasKey: boolean; keyFingerprint?: string | null };
 
@@ -33,6 +34,7 @@ type Question = { id: string; label: string; question: string };
 type Feedback = {
   rating: 'Emerging' | 'Developing' | 'Proficient';
   gotRight: string;
+  conceptNote?: string;
   quote: string | null;
   quoteReference: string | null;
   quoteVerified: boolean;
@@ -103,6 +105,8 @@ export default function App() {
   const [overallDraft, setOverallDraft] = useState(restored?.overallDraft ?? '');
   const [downloading, setDownloading] = useState(false);
   const [announcement, setAnnouncement] = useState('');
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfNote, setPdfNote] = useState('');
 
   function focusElement(id: string) {
     window.setTimeout(() => document.getElementById(id)?.focus(), 50);
@@ -146,13 +150,38 @@ export default function App() {
   const charCount = text.trim().length;
   const pasteWordCount = useMemo(() => countWords(text), [text]);
   const draftWords = useMemo(() => countWords(draft), [draft]);
-  const canBuild = !busy && charCount >= MIN_CHARS;
+  const canBuild = !busy && !pdfBusy && charCount >= MIN_CHARS;
 
   const question = questions[current];
   const currentAttempts = attempts[current] ?? [];
   const latestFeedback = currentAttempts.length ? currentAttempts[currentAttempts.length - 1].feedback : null;
   const canRevise = currentAttempts.length === 1 && !revising;
   const showAnswerBox = currentAttempts.length === 0 || revising;
+
+  async function onPdfSelected(file: File | undefined) {
+    if (!file) return;
+    setPdfBusy(true);
+    setError('');
+    setPdfNote('');
+    try {
+      // The file is read here in the browser. It is never uploaded or stored.
+      const extracted = await extractPdfText(file);
+      if (!extracted.text) {
+        setError('No readable text was found in that PDF. It may be a scanned or image-only PDF. Paste the article text instead, or use a text-based PDF.');
+        return;
+      }
+      setText(extracted.text);
+      if (extracted.title && !title.trim()) setTitle(extracted.title);
+      setPdfNote(
+        `Read “${file.name}” in your browser (${extracted.pageCount} page${extracted.pageCount === 1 ? '' : 's'}, ${extracted.text.length.toLocaleString()} characters). The PDF was not uploaded or stored. Check the text below, fix anything that looks wrong, then start the critique.`,
+      );
+      setAnnouncement(`PDF read in your browser. ${extracted.text.length.toLocaleString()} characters extracted. Check the article text, then start the critique.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'That PDF could not be read. Paste the article text instead.');
+    } finally {
+      setPdfBusy(false);
+    }
+  }
 
   async function buildMap() {
     setBusy(true);
@@ -324,6 +353,7 @@ export default function App() {
     setText('');
     setOverall(null);
     setOverallDraft('');
+    setPdfNote('');
   }
 
   return (
@@ -371,9 +401,9 @@ export default function App() {
               1. Bring in one article
             </h2>
             <p className="font-ui mt-1 text-sm text-stone-600">
-              Paste the full text of one real scholarly article. The app first maps the
-              article, then asks you five questions about it. You will not see the map —
-              it is the reference your answers are judged against.
+              Paste the full text of one real scholarly article, or upload its PDF below.
+              The app first maps the article, then asks you five questions about it. You
+              will not see the map — it is the reference your answers are judged against.
             </p>
 
             <label className="font-ui mt-5 block text-sm font-medium" htmlFor="article-title">
@@ -399,6 +429,40 @@ export default function App() {
               placeholder="e.g. Smith J, Doe A, Lee K"
               className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm placeholder:text-stone-600"
             />
+
+            <div className="mt-5 border border-stone-300 bg-stone-50 p-4">
+              <label className="font-ui block text-sm font-medium" htmlFor="article-pdf">
+                Or upload the article as a PDF
+              </label>
+              <input
+                id="article-pdf"
+                type="file"
+                accept="application/pdf,.pdf"
+                disabled={busy || pdfBusy}
+                aria-describedby="article-pdf-hint"
+                onChange={(e) => {
+                  void onPdfSelected(e.target.files?.[0]);
+                  e.target.value = '';
+                }}
+                className="font-ui mt-2 block w-full text-sm text-stone-700 disabled:opacity-50"
+              />
+              <p id="article-pdf-hint" className="font-ui mt-2 text-xs leading-relaxed text-stone-700">
+                The PDF is read in your browser only. The file is not uploaded to or stored
+                on a server. Its text appears in the box below, where you can check and fix
+                it before starting. Scanned or image-only PDFs have no text to read — paste
+                the text for those instead.
+              </p>
+              {pdfBusy && (
+                <p className="font-ui mt-2 text-sm text-stone-700" role="status">
+                  Reading the PDF in your browser…
+                </p>
+              )}
+              {pdfNote && (
+                <p className="font-ui mt-2 text-sm text-stone-800" role="status">
+                  {pdfNote}
+                </p>
+              )}
+            </div>
 
             <label className="font-ui mt-4 block text-sm font-medium" htmlFor="article-text">
               Full article text
@@ -492,7 +556,7 @@ export default function App() {
                 </p>
                 {attempt.feedback.quoteVerified && attempt.feedback.quote ? (
                   <figure className="mt-4">
-                    <blockquote className="border-l-2 border-stone-400 bg-stone-50 px-4 py-3 text-[15px] italic leading-relaxed">
+                    <blockquote className="border-l-2 border-stone-400 bg-stone-50 py-2 pl-3 pr-2 text-[15px] leading-relaxed">
                       “{attempt.feedback.quote}”
                     </blockquote>
                     <figcaption className="font-ui mt-1 text-xs text-stone-700">
@@ -502,6 +566,12 @@ export default function App() {
                 ) : (
                   <p className="font-ui mt-4 border border-amber-700 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
                     {attempt.feedback.quoteFlag || 'No verified quote was available for this feedback.'}
+                  </p>
+                )}
+                {attempt.feedback.conceptNote && attempt.feedback.rating !== 'Proficient' && (
+                  <p className="mt-4 text-[15px] leading-relaxed">
+                    <span className="font-ui text-sm font-semibold">Key idea: </span>
+                    {attempt.feedback.conceptNote}
                   </p>
                 )}
                 <p className="mt-4 text-[15px] leading-relaxed">
@@ -665,7 +735,7 @@ export default function App() {
             )}
 
             {overall && (
-              <div id="overall-feedback" tabIndex={-1} className="mt-3 border border-stone-200 p-4">
+              <div id="overall-feedback" tabIndex={-1} className="mt-3 border-t border-stone-200 pt-4">
                 <p className="text-[15px] leading-relaxed">{overall.answer}</p>
                 <div className={`font-ui mt-3 inline-block border px-2 py-1 text-xs font-semibold ${RATING_STYLE[overall.feedback.rating as Feedback['rating']]}`}>
                   {overall.feedback.rating}
@@ -676,7 +746,7 @@ export default function App() {
                 </p>
                 {overall.feedback.quoteVerified && overall.feedback.quote ? (
                   <figure className="mt-4">
-                    <blockquote className="border-l-2 border-stone-400 bg-stone-50 px-4 py-3 text-[15px] italic leading-relaxed">
+                    <blockquote className="border-l-2 border-stone-400 bg-stone-50 py-2 pl-3 pr-2 text-[15px] leading-relaxed">
                       “{overall.feedback.quote}”
                     </blockquote>
                     <figcaption className="font-ui mt-1 text-xs text-stone-700">
@@ -686,6 +756,12 @@ export default function App() {
                 ) : (
                   <p className="font-ui mt-4 border border-amber-700 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
                     {overall.feedback.quoteFlag || 'No verified quote was available for this feedback.'}
+                  </p>
+                )}
+                {overall.feedback.conceptNote && overall.feedback.rating !== 'Proficient' && (
+                  <p className="mt-4 text-[15px] leading-relaxed">
+                    <span className="font-ui text-sm font-semibold">Key idea: </span>
+                    {overall.feedback.conceptNote}
                   </p>
                 )}
               </div>

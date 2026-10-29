@@ -172,6 +172,7 @@ export default function App() {
       const extracted = await extractPdfText(file);
       if (!extracted.text) {
         setError('No readable text was found in that PDF. It may be a scanned or image-only PDF. Paste the article text instead, or use a text-based PDF.');
+        focusElement('intake-error');
         return;
       }
       setText(extracted.text);
@@ -180,8 +181,11 @@ export default function App() {
         `Read “${file.name}” in your browser (${extracted.pageCount} page${extracted.pageCount === 1 ? '' : 's'}, ${extracted.text.length.toLocaleString()} characters). The PDF was not uploaded or stored. Check the text below, fix anything that looks wrong, then start the critique.`,
       );
       setAnnouncement(`PDF read in your browser. ${extracted.text.length.toLocaleString()} characters extracted. Check the article text, then start the critique.`);
+      // The file input disables while reading; put focus on the extracted text.
+      focusElement('article-text');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'That PDF could not be read. Paste the article text instead.');
+      focusElement('intake-error');
     } finally {
       setPdfBusy(false);
     }
@@ -200,8 +204,11 @@ export default function App() {
         `Loaded demo article: ${demo.citation} ${demo.license} The text (${articleText.length.toLocaleString()} characters, from the Abstract through the Discussion) is in the box below — you can edit it before starting.`,
       );
       setAnnouncement(`Demo article loaded. ${demo.title}. Check the article text, then start the critique.`);
+      // The Load button disables while loading; put focus on the loaded text.
+      focusElement('article-text');
     } catch {
       setError('That demo article could not be loaded. Paste the article text or upload its PDF instead.');
+      focusElement('intake-error');
     } finally {
       setDemoBusy(false);
     }
@@ -219,6 +226,7 @@ export default function App() {
       const data: MapResponse = await r.json();
       if (!data.ok) {
         setError(data.error || 'Could not build the article map. Please try again.');
+        focusElement('intake-error');
         return;
       }
       const built: ArticleMap = { article: data.article, truncated: data.truncated, model: data.model, areas: data.areas };
@@ -232,6 +240,7 @@ export default function App() {
       focusElement('loop-heading');
     } catch {
       setError('Back end not reachable. Start it with npm run dev:server, then try again.');
+      focusElement('intake-error');
     } finally {
       setBusy(false);
     }
@@ -257,6 +266,7 @@ export default function App() {
       const data: CritiqueResponse = await r.json();
       if (!data.ok) {
         setError(data.error || 'The coach could not respond. Please try again.');
+        focusElement('critique-error');
         return;
       }
       const feedbackIndex = currentAttempts.length;
@@ -270,6 +280,7 @@ export default function App() {
       focusElement(`attempt-${feedbackIndex}`);
     } catch {
       setError('Back end not reachable. Start it with npm run dev:server, then try again.');
+      focusElement('critique-error');
     } finally {
       setBusy(false);
     }
@@ -325,6 +336,7 @@ export default function App() {
       const data: CritiqueResponse = await r.json();
       if (!data.ok) {
         setError(data.error || 'The coach could not respond. Please try again.');
+        focusElement('overall-error');
         return;
       }
       setOverall({ answer: overallDraft, feedback: data.feedback });
@@ -332,6 +344,7 @@ export default function App() {
       focusElement('overall-feedback');
     } catch {
       setError('Back end not reachable. Start it with npm run dev:server, then try again.');
+      focusElement('overall-error');
     } finally {
       setBusy(false);
     }
@@ -379,6 +392,8 @@ export default function App() {
     setOverallDraft('');
     setPdfNote('');
     setDemoNote('');
+    setAnnouncement('Start a new critique. Bring in one article.');
+    focusElement('intake-heading');
   }
 
   return (
@@ -550,7 +565,7 @@ export default function App() {
             </p>
 
             {error && (
-              <div id="intake-error" className="font-ui mt-4 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
+              <div id="intake-error" tabIndex={-1} className="font-ui mt-4 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
                 {error}
               </div>
             )}
@@ -647,7 +662,7 @@ export default function App() {
             ))}
 
             {error && (
-              <div id="critique-error" className="font-ui mt-4 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
+              <div id="critique-error" tabIndex={-1} className="font-ui mt-4 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
                 {error}
               </div>
             )}
@@ -681,7 +696,12 @@ export default function App() {
                 </button>
                 {revising && (
                   <button
-                    onClick={() => { setRevising(false); setError(''); }}
+                    onClick={() => {
+                      setRevising(false);
+                      setError('');
+                      // This button unmounts with the revision box; send focus to the kept feedback.
+                      focusElement(`attempt-${currentAttempts.length - 1}`);
+                    }}
                     disabled={busy}
                     className="font-ui ml-3 border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 disabled:opacity-50"
                   >
@@ -784,7 +804,7 @@ export default function App() {
                   {overallWords < MIN_WORDS && <span> · at least {MIN_WORDS} words needed</span>}
                 </p>
                 {error && (
-                  <div id="overall-error" className="font-ui mt-3 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
+                  <div id="overall-error" tabIndex={-1} className="font-ui mt-3 border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="alert">
                     {error}
                   </div>
                 )}

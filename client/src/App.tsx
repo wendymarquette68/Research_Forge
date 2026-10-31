@@ -123,6 +123,7 @@ export default function App() {
   const [attempts, setAttempts] = useState<Attempt[][]>(restored?.attempts ?? []);
   const [draft, setDraft] = useState(restored?.draft ?? '');
   const [revising, setRevising] = useState(false);
+  const [confirmingStartOver, setConfirmingStartOver] = useState(false);
   const [overall, setOverall] = useState<Attempt | null>(restored?.overall ?? null);
   const [overallDraft, setOverallDraft] = useState(restored?.overallDraft ?? '');
   const [downloading, setDownloading] = useState(false);
@@ -464,7 +465,20 @@ export default function App() {
     }
   }
 
+  function askStartOver() {
+    setConfirmingStartOver(true);
+    setAnnouncement('Starting over will clear your saved work. Confirm to continue, or keep working.');
+    focusElement('start-over-confirm');
+  }
+
+  function cancelStartOver() {
+    setConfirmingStartOver(false);
+    setAnnouncement('Start over cancelled. Your work is still here.');
+    focusElement('start-over-button');
+  }
+
   function startAgain() {
+    setConfirmingStartOver(false);
     clearSession();
     setMap(null);
     setStage('intake');
@@ -759,6 +773,40 @@ export default function App() {
               <p className="font-ui mt-2 text-xs text-stone-700">
                 You can go back to any finished question from the list above and revise it, if you have not used that question&apos;s revision yet.
               </p>
+              <div className="mt-3">
+                {!confirmingStartOver ? (
+                  <button
+                    id="start-over-button"
+                    onClick={askStartOver}
+                    disabled={busy}
+                    className="font-ui border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 disabled:opacity-50"
+                  >
+                    Start over
+                  </button>
+                ) : (
+                  <div id="start-over-confirm" tabIndex={-1} role="alert" className="border border-red-300 bg-red-50 p-3">
+                    <p className="font-ui text-sm leading-relaxed text-red-900">
+                      Start over? This clears the article and all your saved answers in this browser, and cannot be undone.
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        onClick={startAgain}
+                        disabled={busy}
+                        className="font-ui bg-stone-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                      >
+                        Yes, start over
+                      </button>
+                      <button
+                        onClick={cancelStartOver}
+                        disabled={busy}
+                        className="font-ui border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 disabled:opacity-50"
+                      >
+                        Keep working
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <p className="mt-4 text-[17px] leading-relaxed">{question.question}</p>
               <p className="font-ui mt-2 text-xs text-stone-700">
                 Write at least {MIN_WORDS} words. You get one revision after the coach responds.

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeDoi, parseCrossrefWork, extractArticleTextFromXml, getDoiArticle } from '../src/doiArticle.js';
+import { normalizeDoi, parseCrossrefWork, extractArticleTextFromXml, getDoiArticle, extractPmcid, resolveArticleIdentifier } from '../src/doiArticle.js';
 
 test('normalizeDoi accepts a bare DOI', () => {
   assert.equal(normalizeDoi('10.1186/s12909-025-08413-y'), '10.1186/s12909-025-08413-y');
@@ -12,6 +12,25 @@ test('normalizeDoi strips doi.org prefixes and whitespace', () => {
   assert.equal(normalizeDoi('http://dx.doi.org/10.3389/fpubh.2025.1565212'), '10.3389/fpubh.2025.1565212');
   assert.equal(normalizeDoi('doi.org/10.1000/xyz123'), '10.1000/xyz123');
   assert.equal(normalizeDoi('doi: 10.1000/xyz123'), '10.1000/xyz123');
+});
+
+test('normalizeDoi extracts a DOI from a publisher page URL', () => {
+  assert.equal(normalizeDoi('https://link.springer.com/article/10.1186/s12909-025-08413-y'), '10.1186/s12909-025-08413-y');
+  assert.equal(normalizeDoi('https://www.frontiersin.org/journals/public-health/articles/10.3389/fpubh.2025.1565212/full'), '10.3389/fpubh.2025.1565212');
+});
+
+test('resolveArticleIdentifier accepts every pasted form', () => {
+  assert.deepEqual(resolveArticleIdentifier('10.1186/s12909-025-08413-y'), { type: 'doi', doi: '10.1186/s12909-025-08413-y' });
+  assert.deepEqual(resolveArticleIdentifier('https://doi.org/10.1186/s12909-025-08413-y'), { type: 'doi', doi: '10.1186/s12909-025-08413-y' });
+  assert.deepEqual(resolveArticleIdentifier('http://dx.doi.org/10.3389/fpubh.2025.1565212'), { type: 'doi', doi: '10.3389/fpubh.2025.1565212' });
+  assert.deepEqual(resolveArticleIdentifier('doi:10.1186/s12909-025-08413-y'), { type: 'doi', doi: '10.1186/s12909-025-08413-y' });
+  assert.deepEqual(resolveArticleIdentifier('https://link.springer.com/article/10.1186/s12909-025-08413-y'), { type: 'doi', doi: '10.1186/s12909-025-08413-y' });
+  assert.deepEqual(resolveArticleIdentifier('https://pmc.ncbi.nlm.nih.gov/articles/PMC12081350/'), { type: 'pmcid', pmcid: 'PMC12081350' });
+  assert.deepEqual(resolveArticleIdentifier('  https://doi.org/10.1186/s12909-025-08413-y  '), { type: 'doi', doi: '10.1186/s12909-025-08413-y' });
+  assert.deepEqual(resolveArticleIdentifier('  PMC12690956 '), { type: 'pmcid', pmcid: 'PMC12690956' });
+  assert.equal(resolveArticleIdentifier('not a link at all'), null);
+  assert.equal(extractPmcid('https://pmc.ncbi.nlm.nih.gov/articles/PMC12081350/'), 'PMC12081350');
+  assert.equal(extractPmcid('10.1186/s12909-025-08413-y'), null);
 });
 
 test('normalizeDoi rejects input that is not a DOI', () => {
@@ -108,6 +127,55 @@ test('getDoiArticle paywalled fallback when Europe PMC search fails', async () =
   const result = await getDoiArticle({ doi: '10.3389/fpubh.2025.1565212', fetchFn });
   assert.equal(result.openAccess, false);
   assert.equal(result.fullText, null);
+});
+
+function oaFetchFn(url) {
+  const u = String(url);
+  if (u.includes('idconv')) return jsonRes({ records: [{ pmcid: 'PMC12081350', doi: '10.3389/fpubh.2025.1565212' }] });
+  if (u.includes('api.crossref.org')) return jsonRes(CROSSREF);
+  if (u.includes('/search?') && u.includes('DOI')) return jsonRes({ resultList: { result: [{ pmcid: 'PMC1234567' }] } });
+  if (u.includes('/PMC1234567/fullTextXML')) return xmlRes(XML);
+  return { ok: false, status: 404, json: async () => ({}), text: async () => '' };
+}
+
+test('getDoiArticle loads from a Springer publisher URL containing the DOI', async () => {
+  const result = await getDoiArticle({ doi: 'https://link.springer.com/article/10.3389/fpubh.2025.1565212', fetchFn: oaFetchFn });
+  assert.equal(result.doi, '10.3389/fpubh.2025.1565212');
+  assert.equal(result.openAccess, true);
+  assert.match(result.title, /professional identity/);
+});
+
+test('getDoiArticle loads from a PMC page URL via the ID converter DOI', async () => {
+  const result = await getDoiArticle({ doi: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC12081350/', fetchFn: oaFetchFn });
+  assert.equal(result.doi, '10.3389/fpubh.2025.1565212');
+  assert.equal(result.openAccess, true);
+  assert.ok(result.fullText.length >= 500);
+  assert.equal(result.authors, 'Zhang H, He W, Sörman KA'); // Crossref metadata, as in the DOI flow
+});
+
+test('getDoiArticle loads by PMCID from Europe PMC when the converter has no DOI', async () => {
+  const fetchFn = async (url) => {
+    const u = String(url);
+    if (u.includes('idconv')) return jsonRes({ records: [{ pmcid: 'PMC12081350' }] });
+    if (u.includes('/search?') && u.includes('PMCID')) return jsonRes({
+      resultList: {
+        result: [{
+          title: 'Epidemic-induced changes in nursing students professional identity',
+          authorString: 'Zhang H, He W, Cao D.',
+          journalInfo: { journal: { title: 'Frontiers in Public Health' } },
+          pubYear: '2025',
+          doi: '10.3389/fpubh.2025.1565212',
+        }],
+      },
+    });
+    if (u.includes('/PMC12081350/fullTextXML')) return xmlRes(XML);
+    return { ok: false, status: 404, json: async () => ({}), text: async () => '' };
+  };
+  const result = await getDoiArticle({ doi: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC12081350/', fetchFn });
+  assert.equal(result.openAccess, true);
+  assert.match(result.title, /professional identity/);
+  assert.equal(result.authors, 'Zhang H, He W, Cao D.');
+  assert.equal(result.doi, '10.3389/fpubh.2025.1565212');
 });
 
 test('getDoiArticle rejects an invalid DOI with an actionable code', async () => {

@@ -587,7 +587,7 @@ export default function App() {
                     void lookupDoi();
                   }
                 }}
-                placeholder="e.g. 10.1186/s12909-025-08413-y or https://doi.org/10.1186/s12909-025-08413-y"
+                placeholder="e.g. 10.1186/s12909-025-08413-y, a doi.org link, the article page link, or a PMC link"
                 aria-describedby={doiNote ? 'doi-hint doi-message' : 'doi-hint'}
                 aria-invalid={doiFailed ? true : undefined}
                 className="font-ui min-w-64 flex-1 border border-stone-300 px-3 py-2 text-sm placeholder:text-stone-600"
@@ -602,9 +602,10 @@ export default function App() {
               </button>
             </div>
             <p id="doi-hint" className="font-ui mt-1 text-xs leading-relaxed text-stone-700">
-              If the article is freely available, its text loads into the box below and the
-              title and authors fill in. If it is not freely available, paste the text or
-              upload the PDF instead — a DOI lookup never blocks you.
+              Paste the DOI, a doi.org link, the article page link from the citation, or a
+              PMC link. If the article is freely available, its text loads into the box below
+              and the title and authors fill in. If it is not freely available, paste the
+              text or upload the PDF instead — a DOI lookup never blocks you.
             </p>
             {doiNote && (
               <p id="doi-message" tabIndex={-1} role="status" className="font-ui mt-2 text-sm leading-relaxed text-stone-800">

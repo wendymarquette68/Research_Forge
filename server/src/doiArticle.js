@@ -1,4 +1,6 @@
-// DOI article loading for intake.
+// DOI article loading for intake. Accepts a bare DOI, a doi.org link, any
+// publisher URL containing a DOI, or a PMC article link (resolved to its
+// DOI through the NCBI ID converter, or loaded by PMCID from Europe PMC).
 // 1. Crossref (free, no key) gives title, authors, journal, year.
 // 2. Europe PMC gives the open-access full text as JATS XML, from which the
 //    body is extracted section by section from Abstract through Discussion —
@@ -11,17 +13,58 @@ const CROSSREF_BASE = 'https://api.crossref.org/works';
 const EUROPEPMC_BASE = 'https://www.ebi.ac.uk/europepmc/webservices/rest';
 const MIN_FULLTEXT_CHARS = 500;
 
-/** Accept a bare DOI or a doi.org link; return the bare DOI, or null when it cannot be one. */
+/**
+ * Normalisation order (students paste citation links, not just DOIs):
+ * trim, then look for a PMCID, then for a DOI pattern anywhere in the input
+ * (publisher URLs embed the DOI), then treat what is left as a bare DOI.
+ */
+export function extractPmcid(input) {
+  if (typeof input !== 'string') return null;
+  const match = input.match(/PMC(\d+)/i);
+  return match ? `PMC${match[1]}` : null;
+}
+
+function cleanDoiCandidate(candidate) {
+  let doi = String(candidate || '').trim();
+  // Drop URL tail punctuation that is not part of the DOI; keep a balanced ')'.
+  doi = doi.replace(/[.,;]+$/, '');
+  if (doi.endsWith(')') && !doi.includes('(')) doi = doi.slice(0, -1);
+  // Publisher page URLs can continue past the DOI (…/full, …/pdf, …/abstract).
+  let previous = '';
+  while (previous !== doi) {
+    previous = doi;
+    doi = doi.replace(/\/(full|pdf|epub|abstract|references?|supplementary-material|metrics|figures|tables)$/i, '');
+  }
+  return doi;
+}
+
+/** Return the bare DOI, or null when the input does not contain one. */
 export function normalizeDoi(input) {
   if (typeof input !== 'string') return null;
-  let doi = input.trim();
+  const trimmed = input.trim();
+  // A DOI pattern anywhere: bare DOIs, doi.org links, and publisher URLs.
+  const anywhere = trimmed.match(/10\.\d{4,9}\/[^\s"'<>]+/);
+  if (anywhere) {
+    const doi = cleanDoiCandidate(anywhere[0]);
+    if (/^10\.\d{4,9}\/\S+$/.test(doi)) return doi;
+  }
+  let doi = trimmed;
   doi = doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
   doi = doi.replace(/^doi\.org\//i, '');
   doi = doi.replace(/^doi:\s*/i, '');
   doi = doi.trim();
-  // DOI shape: 10.<registrant>/<suffix>, no spaces.
   if (!/^10\.\d{4,9}\/\S+$/.test(doi)) return null;
   return doi;
+}
+
+/** Resolve any accepted input form to { type: 'doi', doi } or { type: 'pmcid', pmcid }. */
+export function resolveArticleIdentifier(input) {
+  if (typeof input !== 'string' || !input.trim()) return null;
+  const pmcid = extractPmcid(input);
+  if (pmcid) return { type: 'pmcid', pmcid };
+  const doi = normalizeDoi(input);
+  if (doi) return { type: 'doi', doi };
+  return null;
 }
 
 function cleanText(s) {
@@ -157,15 +200,79 @@ function lookupError(code, message) {
   return err;
 }
 
+const IDCONV_BASE = 'https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/';
+
+/** PMCID -> DOI via the NCBI ID converter; null when it cannot resolve. */
+export async function doiFromPmcid(pmcid, fetchFn = fetch) {
+  try {
+    const res = await fetchFn(`${IDCONV_BASE}?ids=${encodeURIComponent(pmcid)}&format=json`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const record = Array.isArray(data?.records) ? data.records[0] : null;
+    return normalizeDoi(record?.doi || '') || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Metadata plus full text straight from Europe PMC for a PMCID (no DOI needed). */
+export async function getPmcidArticle(pmcid, fetchFn = fetch) {
+  const searchUrl = `${EUROPEPMC_BASE}/search?query=${encodeURIComponent(`PMCID:${pmcid}`)}&format=json&resultType=core&pageSize=1`;
+  const searchRes = await fetchFn(searchUrl, { headers: { Accept: 'application/json' } });
+  if (!searchRes.ok) return null;
+  const searchData = await searchRes.json();
+  const result = searchData?.resultList?.result?.[0];
+  if (!result || !cleanText(result.title)) return null;
+  let fullText = null;
+  try {
+    const xmlRes = await fetchFn(`${EUROPEPMC_BASE}/${encodeURIComponent(pmcid)}/fullTextXML`);
+    if (xmlRes.ok) {
+      const extracted = extractArticleTextFromXml(await xmlRes.text());
+      if (extracted.length >= MIN_FULLTEXT_CHARS) fullText = extracted;
+    }
+  } catch {
+    fullText = null;
+  }
+  return {
+    doi: normalizeDoi(result.doi || '') || '',
+    title: cleanText(result.title),
+    authors: cleanText(result.authorString),
+    journal: cleanText(result.journalInfo?.journal?.title),
+    year: result.pubYear ? String(result.pubYear) : '',
+    fullText,
+    openAccess: fullText !== null,
+  };
+}
+
 /**
- * Full DOI lookup. Returns { doi, title, authors, journal, year, fullText,
- * openAccess }. fullText is null (and openAccess false) when the article is
- * not freely available — that is a normal result, not a throw. Throws only
- * when the DOI itself cannot be looked up.
+ * Full lookup for any accepted form (bare DOI, doi.org link, publisher URL
+ * containing a DOI, or a PMC link). Returns { doi, title, authors, journal,
+ * year, fullText, openAccess }. fullText is null (and openAccess false) when
+ * the article is not freely available — that is a normal result, not a
+ * throw. Throws only when the input cannot be looked up at all.
  */
-export async function getDoiArticle({ doi: rawDoi, fetchFn = fetch }) {
-  const doi = normalizeDoi(rawDoi);
-  if (!doi) throw lookupError('INVALID_DOI', 'That DOI could not be looked up. Check it and try again, or paste the text or upload the PDF instead.');
+export async function getDoiArticle({ doi: rawInput, fetchFn = fetch }) {
+  const identifier = resolveArticleIdentifier(rawInput);
+  if (!identifier) throw lookupError('INVALID_DOI', 'That DOI could not be looked up. Check it and try again, or paste the text or upload the PDF instead.');
+
+  if (identifier.type === 'pmcid') {
+    // Preferred: resolve to the DOI, then run the normal DOI flow.
+    const doi = await doiFromPmcid(identifier.pmcid, fetchFn);
+    if (doi) return getDoiArticle({ doi, fetchFn });
+    // Otherwise load metadata and full text from Europe PMC by PMCID.
+    let byPmcid = null;
+    try {
+      byPmcid = await getPmcidArticle(identifier.pmcid, fetchFn);
+    } catch {
+      byPmcid = null;
+    }
+    if (byPmcid) return byPmcid;
+    throw lookupError('DOI_NOT_FOUND', 'That DOI could not be looked up. Check it and try again, or paste the text or upload the PDF instead.');
+  }
+
+  const doi = identifier.doi;
 
   let crossrefRes;
   try {

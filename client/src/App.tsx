@@ -538,6 +538,46 @@ export default function App() {
               answers are judged against.
             </p>
 
+            <label className="font-ui mt-5 block text-sm font-medium" htmlFor="article-doi">
+              DOI <span className="font-normal text-stone-700">(optional — paste a DOI to load the article)</span>
+            </label>
+            <div className="mt-1 flex flex-wrap gap-2">
+              <input
+                id="article-doi"
+                type="text"
+                value={doi}
+                onChange={(e) => { setDoi(e.target.value); setDoiFailed(false); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void lookupDoi();
+                  }
+                }}
+                placeholder="e.g. 10.1186/s12909-025-08413-y or https://doi.org/10.1186/s12909-025-08413-y"
+                aria-describedby={doiNote ? 'doi-hint doi-message' : 'doi-hint'}
+                aria-invalid={doiFailed ? true : undefined}
+                className="font-ui min-w-64 flex-1 border border-stone-300 px-3 py-2 text-sm placeholder:text-stone-600"
+              />
+              <button
+                onClick={() => void lookupDoi()}
+                disabled={doiBusy || !doi.trim()}
+                aria-describedby="doi-hint"
+                className="font-ui border border-stone-900 bg-white px-3 py-2 text-sm font-medium text-stone-900 disabled:opacity-50"
+              >
+                {doiBusy ? 'Looking up…' : 'Load article by DOI'}
+              </button>
+            </div>
+            <p id="doi-hint" className="font-ui mt-1 text-xs leading-relaxed text-stone-700">
+              If the article is freely available, its text loads into the box below and the
+              title and authors fill in. If it is not freely available, paste the text or
+              upload the PDF instead — a DOI lookup never blocks you.
+            </p>
+            {doiNote && (
+              <p id="doi-message" tabIndex={-1} role="status" className="font-ui mt-2 text-sm leading-relaxed text-stone-800">
+                {doiNote}
+              </p>
+            )}
+
             <div className="mt-5">
               <h3 className="font-ui text-sm font-medium">Or start with a demo article</h3>
               <p className="font-ui mt-1 text-xs leading-relaxed text-stone-700">
@@ -588,46 +628,6 @@ export default function App() {
               placeholder="e.g. Effects of a walking programme on blood pressure in older adults"
               className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm placeholder:text-stone-600"
             />
-
-            <label className="font-ui mt-4 block text-sm font-medium" htmlFor="article-doi">
-              DOI <span className="font-normal text-stone-700">(optional — paste a DOI to load the article)</span>
-            </label>
-            <div className="mt-1 flex flex-wrap gap-2">
-              <input
-                id="article-doi"
-                type="text"
-                value={doi}
-                onChange={(e) => { setDoi(e.target.value); setDoiFailed(false); }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    void lookupDoi();
-                  }
-                }}
-                placeholder="e.g. 10.1186/s12909-025-08413-y or https://doi.org/10.1186/s12909-025-08413-y"
-                aria-describedby={doiNote ? 'doi-hint doi-message' : 'doi-hint'}
-                aria-invalid={doiFailed ? true : undefined}
-                className="font-ui min-w-64 flex-1 border border-stone-300 px-3 py-2 text-sm placeholder:text-stone-600"
-              />
-              <button
-                onClick={() => void lookupDoi()}
-                disabled={doiBusy || !doi.trim()}
-                aria-describedby="doi-hint"
-                className="font-ui border border-stone-900 bg-white px-3 py-2 text-sm font-medium text-stone-900 disabled:opacity-50"
-              >
-                {doiBusy ? 'Looking up…' : 'Load article by DOI'}
-              </button>
-            </div>
-            <p id="doi-hint" className="font-ui mt-1 text-xs leading-relaxed text-stone-700">
-              If the article is freely available, its text loads into the box below and the
-              title and authors fill in. If it is not freely available, paste the text or
-              upload the PDF instead — a DOI lookup never blocks you.
-            </p>
-            {doiNote && (
-              <p id="doi-message" tabIndex={-1} role="status" className="font-ui mt-2 text-sm leading-relaxed text-stone-800">
-                {doiNote}
-              </p>
-            )}
 
             <label className="font-ui mt-4 block text-sm font-medium" htmlFor="article-authors">
               Authors <span className="font-normal text-stone-700">(optional)</span>

@@ -181,6 +181,8 @@ test('getCritiqueFeedback returns the concept note for Developing and asks for i
   assert.match(promptText, /where it goes/i);
   assert.match(promptText, /stakeholders/i);
   assert.match(promptText, /overall impact/i);
+  assert.match(promptText, /generalisability, applicability, follow-up length, single-site design, self-report bias, and who was not studied belong in Limitations and applicability/i);
+  assert.match(promptText, /still belongs in Limitations and applicability, not in Methods/i);
 });
 
 test('parseFeedback keeps a quote role of supports or challenges only', () => {

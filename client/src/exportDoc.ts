@@ -142,13 +142,68 @@ export async function buildCritiqueDocxBlob(input: ExportInput): Promise<Blob> {
   return Packer.toBlob(buildCritiqueDocument(input));
 }
 
-export function critiqueFilename(articleTitle: string): string {
-  const slug = (articleTitle || 'article')
+/**
+ * Clean copy for handing in: title, authors, DOI, then each question with
+ * the student's latest answer and its rating, and the overall judgment.
+ * No coach text of any kind — no got-right notes, quotes, Key ideas, or
+ * follow-up questions.
+ */
+export function buildResponsesDocument(input: ExportInput): Document {
+  const children: Paragraph[] = [
+    heading('ResearchForge AI — Responses', HeadingLevel.TITLE),
+    heading(input.articleTitle || 'Untitled article', HeadingLevel.HEADING_1),
+  ];
+  if (input.articleAuthors) children.push(body(input.articleAuthors));
+  if (input.articleDoi) children.push(body(`DOI: ${input.articleDoi}`));
+
+  input.questions.forEach((q, i) => {
+    children.push(heading(`${i + 1}. ${q.label}`, HeadingLevel.HEADING_2));
+    children.push(labelled('Question', q.question));
+    const latest = q.attempts[q.attempts.length - 1];
+    if (!latest) {
+      children.push(body('No answer submitted.'));
+      return;
+    }
+    children.push(labelled('Answer', latest.answer));
+    children.push(labelled('Rating', latest.feedback.rating));
+  });
+
+  children.push(heading('Overall judgment', HeadingLevel.HEADING_2));
+  children.push(labelled('Question', input.overallQuestion));
+  if (input.overall) {
+    children.push(labelled('Answer', input.overall.answer));
+    children.push(labelled('Rating', input.overall.feedback.rating));
+  } else {
+    children.push(body('No overall judgment submitted.'));
+  }
+
+  return new Document({
+    title: `ResearchForge responses — ${input.articleTitle || 'Untitled article'}`,
+    subject: 'Research appraisal responses with ratings',
+    creator: 'ResearchForge AI',
+    description: 'Student responses to the five critique questions and the overall judgment, with ratings.',
+    sections: [{ children }],
+  });
+}
+
+export async function buildResponsesDocxBlob(input: ExportInput): Promise<Blob> {
+  return Packer.toBlob(buildResponsesDocument(input));
+}
+
+function slugify(articleTitle: string): string {
+  return (articleTitle || 'article')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 60);
-  return `researchforge-critique-${slug || 'article'}.docx`;
+    .slice(0, 60) || 'article';
+}
+
+export function critiqueFilename(articleTitle: string): string {
+  return `researchforge-critique-${slugify(articleTitle)}.docx`;
+}
+
+export function responsesFilename(articleTitle: string): string {
+  return `researchforge-responses-${slugify(articleTitle)}.docx`;
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

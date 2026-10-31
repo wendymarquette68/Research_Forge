@@ -5,7 +5,7 @@ import {
   saveSession,
   type StoredAttempt,
 } from './session';
-import { buildCritiqueDocxBlob, critiqueFilename, downloadBlob } from './exportDoc';
+import { buildCritiqueDocxBlob, buildResponsesDocxBlob, critiqueFilename, responsesFilename, downloadBlob } from './exportDoc';
 import { extractPdfText } from './pdfText';
 import { DEMO_ARTICLES, loadDemoArticleText, type DemoArticle } from './demoArticles';
 
@@ -438,26 +438,46 @@ export default function App() {
     }
   }
 
+  function exportInput() {
+    return {
+      articleTitle: map?.article.title ?? '',
+      articleAuthors: map?.article.authors ?? '',
+      articleDoi: doi,
+      questions: questions.map((q, i) => ({
+        label: q.label,
+        question: q.question,
+        attempts: attempts[i] ?? [],
+      })),
+      overall,
+      overallQuestion: overallQuestion.question,
+    };
+  }
+
   async function downloadWord() {
     if (!map) return;
     setDownloading(true);
     setError('');
     setAnnouncement('Building your Word document.');
     try {
-      const blob = await buildCritiqueDocxBlob({
-        articleTitle: map.article.title,
-        articleAuthors: map.article.authors,
-        articleDoi: doi,
-        questions: questions.map((q, i) => ({
-          label: q.label,
-          question: q.question,
-          attempts: attempts[i] ?? [],
-        })),
-        overall,
-        overallQuestion: overallQuestion.question,
-      });
+      const blob = await buildCritiqueDocxBlob(exportInput());
       downloadBlob(blob, critiqueFilename(map.article.title));
       setAnnouncement('Word document downloaded.');
+    } catch {
+      setError('The Word document could not be built. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  async function downloadResponses() {
+    if (!map) return;
+    setDownloading(true);
+    setError('');
+    setAnnouncement('Building your responses-only Word document.');
+    try {
+      const blob = await buildResponsesDocxBlob(exportInput());
+      downloadBlob(blob, responsesFilename(map.article.title));
+      setAnnouncement('Responses-only Word document downloaded.');
     } catch {
       setError('The Word document could not be built. Please try again.');
     } finally {
@@ -1104,6 +1124,13 @@ export default function App() {
                 className="font-ui bg-stone-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 {downloading ? 'Building document…' : 'Download Word document'}
+              </button>
+              <button
+                onClick={downloadResponses}
+                disabled={!overall || downloading}
+                className="font-ui border border-stone-900 bg-white px-4 py-2 text-sm font-medium text-stone-900 disabled:opacity-50"
+              >
+                {downloading ? 'Building document…' : 'Download Word document (responses only)'}
               </button>
               <button
                 onClick={startAgain}

@@ -23,6 +23,8 @@ export type StoredSession = {
   version: 1;
   title: string;
   authors: string;
+  // Optional so sessions saved before DOI intake existed still load.
+  doi?: string;
   text: string;
   map: {
     article: { title: string; authors: string };
@@ -80,6 +82,7 @@ export function parseStoredSession(raw: string | null): StoredSession | null {
     version: 1,
     title: parsed.title,
     authors: parsed.authors,
+    doi: typeof parsed.doi === 'string' ? parsed.doi : '',
     text: parsed.text,
     map: map as StoredSession['map'],
     stage: parsed.stage,

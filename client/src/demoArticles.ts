@@ -10,6 +10,7 @@ export type DemoArticle = {
   kind: string;
   title: string;
   authors: string;
+  doi: string;
   citation: string;
   license: string;
   sourceUrl: string;
@@ -23,6 +24,7 @@ export const DEMO_ARTICLES: DemoArticle[] = [
       'Virtual patient simulation strengthens confidence in clinical conversations among undergraduated nursing students: a randomized controlled trial',
     authors:
       'Sörman K, El Alaoui S, Mårtensson S, Larsson M, Knez R, Ljudvåg M, Mac R, Dahlström K, Nowak YE, Fors U, Eckerström J',
+    doi: '10.1186/s12909-025-08413-y',
     citation:
       'Sörman et al. (2025). BMC Medical Education. DOI: 10.1186/s12909-025-08413-y. PMC12690956.',
     license: 'Open access under CC BY 4.0 (Creative Commons Attribution 4.0 International License).',
@@ -33,6 +35,7 @@ export const DEMO_ARTICLES: DemoArticle[] = [
     kind: 'Qualitative — phenomenological study',
     title: 'Epidemic-induced changes in nursing students’ professional identity: a qualitative investigation',
     authors: 'Zhang H, He W, Cao D, Liu J, Yang Y, Zhu X, Jiang M',
+    doi: '10.3389/fpubh.2025.1565212',
     citation:
       'Zhang et al. (2025). Frontiers in Public Health, 13:1565212. DOI: 10.3389/fpubh.2025.1565212. PMC12081350.',
     license: 'Open access under CC BY 4.0 (Creative Commons Attribution License).',

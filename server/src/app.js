@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { callModel, listModels, modelConfig } from './modelClient.js';
 import { getArticleMap, validateArticleInput } from './articleMap.js';
+import { getDoiArticle } from './doiArticle.js';
 import { getCritiqueFeedback, validateCritiqueInput, QUESTIONS, OVERALL_QUESTION } from './critique.js';
 
 // Express app without listen(): local start goes through index.js,
@@ -63,6 +64,19 @@ app.post('/api/article-map', async (req, res) => {
   } catch (err) {
     const status = err.code === 'MISSING_API_KEY' ? 503 : err.status || 502;
     return res.status(status).json({ ok: false, code: err.code || 'ERROR', error: err.message });
+  }
+});
+
+// DOI intake: Crossref metadata plus open-access full text via Europe PMC.
+// A paywalled article returns metadata with fullText null (not an error);
+// an unfindable DOI returns a short, actionable message. Intake never blocks.
+app.get('/api/doi-article', async (req, res) => {
+  try {
+    const result = await getDoiArticle({ doi: req.query.doi });
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    const status = err.code === 'INVALID_DOI' ? 400 : 404;
+    return res.status(status).json({ ok: false, code: err.code || 'DOI_LOOKUP_FAILED', error: err.message });
   }
 });
 

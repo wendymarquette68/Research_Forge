@@ -16,6 +16,7 @@ export type ExportQuestion = {
 export type ExportInput = {
   articleTitle: string;
   articleAuthors: string;
+  articleDoi?: string;
   questions: ExportQuestion[];
   overall: StoredAttempt | null;
   overallQuestion: string;
@@ -102,6 +103,7 @@ export function buildCritiqueDocument(input: ExportInput): Document {
     heading(input.articleTitle || 'Untitled article', HeadingLevel.HEADING_1),
   ];
   if (input.articleAuthors) children.push(body(input.articleAuthors));
+  if (input.articleDoi) children.push(body(`DOI: ${input.articleDoi}`));
   children.push(
     body(
       'The learner wrote every answer below; the coach rated the reasoning and quoted the article.',

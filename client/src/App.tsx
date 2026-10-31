@@ -48,6 +48,19 @@ type CritiqueResponse =
   | { ok: true; areaId: string; feedback: Feedback }
   | { ok: false; error?: string; code?: string };
 
+type DoiResponse =
+  | {
+      ok: true;
+      doi: string;
+      title: string;
+      authors: string;
+      journal: string;
+      year: string;
+      fullText: string | null;
+      openAccess: boolean;
+    }
+  | { ok: false; error?: string; code?: string };
+
 type Attempt = StoredAttempt;
 
 const FALLBACK_OVERALL: Question = {
@@ -96,6 +109,7 @@ export default function App() {
 
   const [title, setTitle] = useState(restored?.title ?? '');
   const [authors, setAuthors] = useState(restored?.authors ?? '');
+  const [doi, setDoi] = useState(restored?.doi ?? '');
   const [text, setText] = useState(restored?.text ?? '');
 
   // The map is the hidden judging reference. It is held in state and sent
@@ -117,6 +131,9 @@ export default function App() {
   const [pdfNote, setPdfNote] = useState('');
   const [demoBusy, setDemoBusy] = useState(false);
   const [demoNote, setDemoNote] = useState('');
+  const [doiBusy, setDoiBusy] = useState(false);
+  const [doiNote, setDoiNote] = useState('');
+  const [doiFailed, setDoiFailed] = useState(false);
 
   function focusElement(id: string) {
     window.setTimeout(() => document.getElementById(id)?.focus(), 50);
@@ -146,6 +163,7 @@ export default function App() {
       version: 1,
       title,
       authors,
+      doi,
       text,
       map,
       stage,
@@ -155,12 +173,12 @@ export default function App() {
       draft,
       overallDraft,
     });
-  }, [title, authors, text, map, stage, current, attempts, overall, draft, overallDraft]);
+  }, [title, authors, doi, text, map, stage, current, attempts, overall, draft, overallDraft]);
 
   const charCount = text.trim().length;
   const pasteWordCount = useMemo(() => countWords(text), [text]);
   const draftWords = useMemo(() => countWords(draft), [draft]);
-  const canBuild = !busy && !pdfBusy && !demoBusy && charCount >= MIN_CHARS;
+  const canBuild = !busy && !pdfBusy && !demoBusy && !doiBusy && charCount >= MIN_CHARS;
 
   const question = questions[current];
   const currentAttempts = attempts[current] ?? [];
@@ -206,6 +224,9 @@ export default function App() {
       const articleText = await loadDemoArticleText(demo);
       setTitle(demo.title);
       setAuthors(demo.authors);
+      setDoi(demo.doi);
+      setDoiNote('');
+      setDoiFailed(false);
       setText(articleText);
       setDemoNote(
         `Loaded demo article: ${demo.citation} ${demo.license} The text (${articleText.length.toLocaleString()} characters, from the Abstract through the Discussion) is in the box below — you can edit it before starting.`,
@@ -218,6 +239,50 @@ export default function App() {
       focusElement('intake-error');
     } finally {
       setDemoBusy(false);
+    }
+  }
+
+  async function lookupDoi() {
+    const rawDoi = doi.trim();
+    if (!rawDoi || doiBusy) return;
+    setDoiBusy(true);
+    setDoiNote('');
+    setDoiFailed(false);
+    setError('');
+    try {
+      const r = await fetch(`/api/doi-article?doi=${encodeURIComponent(rawDoi)}`);
+      const data: DoiResponse = await r.json();
+      if (!data.ok) {
+        setDoiFailed(true);
+        setDoiNote(data.error || 'That DOI could not be looked up. Check it and try again, or paste the text or upload the PDF instead.');
+        focusElement('doi-message');
+        return;
+      }
+      setDoi(data.doi);
+      if (data.title) setTitle(data.title);
+      if (data.authors) setAuthors(data.authors);
+      const source = [data.journal, data.year].filter(Boolean).join(', ');
+      if (data.openAccess && data.fullText) {
+        setText(data.fullText);
+        setPdfNote('');
+        setDemoNote('');
+        setDoiNote(
+          `Loaded from DOI ${data.doi}${source ? ` (${source})` : ''}: ${data.fullText.length.toLocaleString()} characters from the Abstract through the Discussion are in the box below. The text is editable — check it, then start the critique.`,
+        );
+        setAnnouncement(`Article loaded from its DOI. ${data.fullText.length.toLocaleString()} characters are in the article box. Check the text, then start the critique.`);
+        focusElement('article-text');
+      } else {
+        // Not freely available is not a failure: keep whatever metadata came back.
+        setDoiNote('This article is not freely available, so the text could not be pulled in. Paste the text or upload the PDF instead.');
+        setAnnouncement('That article is not freely available, so its text could not be pulled in. Paste the text or upload the PDF instead.');
+        focusElement('doi-message');
+      }
+    } catch {
+      setDoiFailed(true);
+      setDoiNote('That DOI could not be looked up. Check it and try again, or paste the text or upload the PDF instead.');
+      focusElement('doi-message');
+    } finally {
+      setDoiBusy(false);
     }
   }
 
@@ -381,6 +446,7 @@ export default function App() {
       const blob = await buildCritiqueDocxBlob({
         articleTitle: map.article.title,
         articleAuthors: map.article.authors,
+        articleDoi: doi,
         questions: questions.map((q, i) => ({
           label: q.label,
           question: q.question,
@@ -409,11 +475,14 @@ export default function App() {
     setError('');
     setTitle('');
     setAuthors('');
+    setDoi('');
     setText('');
     setOverall(null);
     setOverallDraft('');
     setPdfNote('');
     setDemoNote('');
+    setDoiNote('');
+    setDoiFailed(false);
     setAnnouncement('Start a new critique. Bring in one article.');
     focusElement('intake-heading');
   }
@@ -463,8 +532,8 @@ export default function App() {
               1. Bring in one article
             </h2>
             <p className="font-ui mt-1 text-sm text-stone-600">
-              Paste the full text of one real scholarly article, upload its PDF below, or
-              start with a demo article. The app first maps the article, then asks you five
+              Paste the full text of one real scholarly article, upload its PDF below,
+              load it by DOI, or start with a demo article. The app first maps the article, then asks you five
               questions about it. You will not see the map — it is the reference your
               answers are judged against.
             </p>
@@ -519,6 +588,46 @@ export default function App() {
               placeholder="e.g. Effects of a walking programme on blood pressure in older adults"
               className="font-ui mt-1 w-full border border-stone-300 px-3 py-2 text-sm placeholder:text-stone-600"
             />
+
+            <label className="font-ui mt-4 block text-sm font-medium" htmlFor="article-doi">
+              DOI <span className="font-normal text-stone-700">(optional — paste a DOI to load the article)</span>
+            </label>
+            <div className="mt-1 flex flex-wrap gap-2">
+              <input
+                id="article-doi"
+                type="text"
+                value={doi}
+                onChange={(e) => { setDoi(e.target.value); setDoiFailed(false); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void lookupDoi();
+                  }
+                }}
+                placeholder="e.g. 10.1186/s12909-025-08413-y or https://doi.org/10.1186/s12909-025-08413-y"
+                aria-describedby={doiNote ? 'doi-hint doi-message' : 'doi-hint'}
+                aria-invalid={doiFailed ? true : undefined}
+                className="font-ui min-w-64 flex-1 border border-stone-300 px-3 py-2 text-sm placeholder:text-stone-600"
+              />
+              <button
+                onClick={() => void lookupDoi()}
+                disabled={doiBusy || !doi.trim()}
+                aria-describedby="doi-hint"
+                className="font-ui border border-stone-900 bg-white px-3 py-2 text-sm font-medium text-stone-900 disabled:opacity-50"
+              >
+                {doiBusy ? 'Looking up…' : 'Load article by DOI'}
+              </button>
+            </div>
+            <p id="doi-hint" className="font-ui mt-1 text-xs leading-relaxed text-stone-700">
+              If the article is freely available, its text loads into the box below and the
+              title and authors fill in. If it is not freely available, paste the text or
+              upload the PDF instead — a DOI lookup never blocks you.
+            </p>
+            {doiNote && (
+              <p id="doi-message" tabIndex={-1} role="status" className="font-ui mt-2 text-sm leading-relaxed text-stone-800">
+                {doiNote}
+              </p>
+            )}
 
             <label className="font-ui mt-4 block text-sm font-medium" htmlFor="article-authors">
               Authors <span className="font-normal text-stone-700">(optional)</span>
@@ -783,6 +892,11 @@ export default function App() {
               “{map.article.title}”
               {map.article.authors ? ` — ${map.article.authors}` : ''}
             </p>
+            {doi && (
+              <p className="font-ui mt-1 text-xs text-stone-700">
+                DOI: {doi} · <a href={`https://doi.org/${doi}`} target="_blank" rel="noreferrer" className="underline">https://doi.org/{doi}</a>
+              </p>
+            )}
 
             <div className="font-ui mt-4 overflow-x-auto">
               <table className="w-full border-collapse text-left text-sm">

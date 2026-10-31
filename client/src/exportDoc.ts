@@ -60,7 +60,7 @@ function quoteBlock(attempt: StoredAttempt) {
       new Paragraph({
         children: [
           new TextRun({
-            text: `${fb.quoteReference || 'Pasted article'} — verified word for word in the pasted article.`,
+            text: `${fb.quoteReference || 'Your article'} — verified word for word in your article.`,
             size: 18,
             color: '666666',
           }),
@@ -73,7 +73,7 @@ function quoteBlock(attempt: StoredAttempt) {
     new Paragraph({
       children: [
         new TextRun({
-          text: 'No quote is shown: the coach\u2019s passage could not be verified word for word in the pasted article, so it was withheld.',
+          text: 'No quote is shown: the coach\u2019s passage could not be verified word for word in your article, so it was withheld.',
         }),
       ],
       spacing: { after: 120 },

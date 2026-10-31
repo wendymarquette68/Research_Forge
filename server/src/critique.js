@@ -78,8 +78,8 @@ export function findPassageReference(articleText, quote) {
     if (hit) { section = hit; break; }
   }
   return section
-    ? `Passage ${idx + 1} of the pasted article (${section})`
-    : `Passage ${idx + 1} of the pasted article`;
+    ? `Passage ${idx + 1} of your article (${section})`
+    : `Passage ${idx + 1} of your article`;
 }
 
 export function parseFeedback(rawContent) {
@@ -257,7 +257,7 @@ export async function getCritiqueFeedback({ callModel, articleText, title, areaI
     quote: null,
     quoteReference: null,
     quoteVerified: false,
-    quoteFlag: 'The coach quoted a passage that could not be verified word for word in your pasted article, so the quote has been withheld. The rest of this feedback still stands — check the point against the article yourself.',
+    quoteFlag: 'The coach quoted a passage that could not be verified word for word in your article, so the quote has been withheld. The rest of this feedback still stands — check the point against the article yourself.',
     quoteRole: '',
     followUp: lastFeedback.followUp,
   };

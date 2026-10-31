@@ -837,7 +837,7 @@ export default function App() {
                       “{attempt.feedback.quote}”
                     </blockquote>
                     <figcaption className="font-ui mt-1 text-xs text-stone-700">
-                      {attempt.feedback.quoteReference} · verified word for word in your pasted article
+                      {attempt.feedback.quoteReference} · verified word for word in your article
                     </figcaption>
                   </figure>
                 ) : (
@@ -866,6 +866,11 @@ export default function App() {
 
             {showAnswerBox && (
               <div className="mt-4 border border-stone-300 bg-white p-5">
+                {revising && question && (
+                  <p className="font-ui mb-3 border-b border-stone-200 pb-2 text-sm font-semibold text-stone-900">
+                    Your revision for question {current + 1}: {question.label}
+                  </p>
+                )}
                 <label className="font-ui block text-sm font-medium" htmlFor="answer-text">
                   {revising ? 'Revise your answer' : 'Your answer'}
                 </label>
@@ -917,6 +922,15 @@ export default function App() {
                     className="font-ui border border-stone-900 bg-white px-4 py-2 text-sm font-medium text-stone-900 disabled:opacity-50"
                   >
                     Revise once
+                  </button>
+                )}
+                {current > 0 && (attempts[current - 1] ?? []).length > 0 && (
+                  <button
+                    onClick={() => goToQuestion(current - 1)}
+                    disabled={busy}
+                    className="font-ui border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 disabled:opacity-50"
+                  >
+                    Previous question
                   </button>
                 )}
                 <button
@@ -1060,7 +1074,7 @@ export default function App() {
                       “{overall.feedback.quote}”
                     </blockquote>
                     <figcaption className="font-ui mt-1 text-xs text-stone-700">
-                      {overall.feedback.quoteReference} · verified word for word in your pasted article
+                      {overall.feedback.quoteReference} · verified word for word in your article
                     </figcaption>
                   </figure>
                 ) : (

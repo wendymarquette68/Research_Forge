@@ -743,36 +743,6 @@ export default function App() {
               <h2 id="loop-heading" tabIndex={-1} className="font-ui mt-2 text-sm font-semibold">
                 Question {current + 1} of {questions.length} — {question.label}
               </h2>
-              <ol className="font-ui mt-3 flex flex-wrap gap-2" aria-label="Progress — select a finished question to go back to it">
-                {questions.map((q, i) => {
-                  const done = (attempts[i] ?? []).length > 0;
-                  const rating = done ? attempts[i][attempts[i].length - 1].feedback.rating : null;
-                  const chipText = `${i + 1}. ${q.label}${rating ? ` · ${rating}` : ''}`;
-                  return (
-                    <li
-                      key={q.id}
-                      aria-current={i === current ? 'step' : undefined}
-                      className={`border text-xs ${i === current ? 'border-stone-900 bg-stone-900 text-white' : done ? 'border-stone-300 bg-stone-50 text-stone-700' : 'border-stone-300 bg-white text-stone-700'}`}
-                    >
-                      {done && i !== current ? (
-                        <button
-                          onClick={() => goToQuestion(i)}
-                          disabled={busy}
-                          aria-label={`Go back to question ${i + 1}: ${q.label}`}
-                          className="px-2 py-1 underline disabled:opacity-50"
-                        >
-                          {chipText}
-                        </button>
-                      ) : (
-                        <span className="block px-2 py-1">{chipText}</span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-              <p className="font-ui mt-2 text-xs text-stone-700">
-                You can go back to any finished question from the list above and revise it, if you have not used that question&apos;s revision yet.
-              </p>
               <div className="mt-3">
                 {!confirmingStartOver ? (
                   <button
@@ -807,6 +777,36 @@ export default function App() {
                   </div>
                 )}
               </div>
+              <ol className="font-ui mt-3 flex flex-wrap gap-2" aria-label="Progress — select a finished question to go back to it">
+                {questions.map((q, i) => {
+                  const done = (attempts[i] ?? []).length > 0;
+                  const rating = done ? attempts[i][attempts[i].length - 1].feedback.rating : null;
+                  const chipText = `${i + 1}. ${q.label}${rating ? ` · ${rating}` : ''}`;
+                  return (
+                    <li
+                      key={q.id}
+                      aria-current={i === current ? 'step' : undefined}
+                      className={`border text-xs ${i === current ? 'border-stone-900 bg-stone-900 text-white' : done ? 'border-stone-300 bg-stone-50 text-stone-700' : 'border-stone-300 bg-white text-stone-700'}`}
+                    >
+                      {done && i !== current ? (
+                        <button
+                          onClick={() => goToQuestion(i)}
+                          disabled={busy}
+                          aria-label={`Go back to question ${i + 1}: ${q.label}`}
+                          className="px-2 py-1 underline disabled:opacity-50"
+                        >
+                          {chipText}
+                        </button>
+                      ) : (
+                        <span className="block px-2 py-1">{chipText}</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+              <p className="font-ui mt-2 text-xs text-stone-700">
+                You can go back to any finished question from the list above and revise it, if you have not used that question&apos;s revision yet.
+              </p>
               <p className="mt-4 text-[17px] leading-relaxed">{question.question}</p>
               <p className="font-ui mt-2 text-xs text-stone-700">
                 Write at least {MIN_WORDS} words. You get one revision after the coach responds.

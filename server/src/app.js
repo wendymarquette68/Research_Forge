@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { callModel, listModels, modelConfig } from './modelClient.js';
-import { buildArticleMapPrompt, parseArticleMap, validateArticleInput } from './articleMap.js';
+import { getArticleMap, validateArticleInput } from './articleMap.js';
 import { getCritiqueFeedback, validateCritiqueInput, QUESTIONS, OVERALL_QUESTION } from './critique.js';
 
 // Express app without listen(): local start goes through index.js,
@@ -52,12 +52,10 @@ app.post('/api/article-map', async (req, res) => {
     return res.status(400).json({ ok: false, code: 'INVALID_ARTICLE', error: input.error });
   }
   try {
-    const { messages, truncated } = buildArticleMapPrompt(input);
-    const result = await callModel(messages, { maxTokens: 6144 });
-    const areas = parseArticleMap(result.content);
+    const { areas, truncated, model } = await getArticleMap({ callModel, ...input });
     return res.json({
       ok: true,
-      model: result.model,
+      model,
       article: { title: input.title || 'Untitled article', authors: input.authors || '' },
       truncated,
       areas,

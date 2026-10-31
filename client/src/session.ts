@@ -8,6 +8,8 @@ export type StoredFeedback = {
   gotRight: string;
   // Optional so sessions saved before concept notes existed still load.
   conceptNote?: string;
+  // Optional so sessions saved before quote roles existed still load.
+  quoteRole?: string;
   quote: string | null;
   quoteReference: string | null;
   quoteVerified: boolean;

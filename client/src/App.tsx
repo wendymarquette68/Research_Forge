@@ -36,6 +36,7 @@ type Feedback = {
   rating: 'Emerging' | 'Developing' | 'Proficient';
   gotRight: string;
   conceptNote?: string;
+  quoteRole?: string;
   quote: string | null;
   quoteReference: string | null;
   quoteVerified: boolean;
@@ -70,6 +71,12 @@ const FALLBACK_QUESTIONS: Question[] = [
 function countWords(s: string) {
   const t = s.trim();
   return t ? t.split(/\s+/).length : 0;
+}
+
+function quoteRoleLabel(quoteRole?: string): string {
+  if (quoteRole === 'supports') return 'From the article — this passage supports your answer';
+  if (quoteRole === 'challenges') return 'From the article — this passage challenges your answer';
+  return 'From the article — the passage your answer connects to';
 }
 
 const RATING_STYLE: Record<Feedback['rating'], string> = {
@@ -292,6 +299,21 @@ export default function App() {
     setError('');
     setAnnouncement('Revise your answer. You have one revision for this question.');
     focusElement('answer-text');
+  }
+
+  function goToQuestion(i: number) {
+    // Backtracking is only to questions already answered (or the current one).
+    // The one-revision rule is unchanged: canRevise still requires exactly
+    // one attempt, so a question already revised cannot be revised again.
+    if (i === current && stage === 'loop') return;
+    if (!(attempts[i] ?? []).length) return;
+    setError('');
+    setDraft('');
+    setRevising(false);
+    setCurrent(i);
+    setStage('loop');
+    setAnnouncement(`Back to question ${i + 1} of ${questions.length}: ${questions[i]?.label}. Your earlier answer and feedback are shown; you can revise it if you have not used your revision yet.`);
+    focusElement('loop-heading');
   }
 
   function nextQuestion() {
@@ -598,21 +620,36 @@ export default function App() {
               <h2 id="loop-heading" tabIndex={-1} className="font-ui mt-2 text-sm font-semibold">
                 Question {current + 1} of {questions.length} — {question.label}
               </h2>
-              <ol className="font-ui mt-3 flex flex-wrap gap-2" aria-label="Progress">
+              <ol className="font-ui mt-3 flex flex-wrap gap-2" aria-label="Progress — select a finished question to go back to it">
                 {questions.map((q, i) => {
                   const done = (attempts[i] ?? []).length > 0;
                   const rating = done ? attempts[i][attempts[i].length - 1].feedback.rating : null;
+                  const chipText = `${i + 1}. ${q.label}${rating ? ` · ${rating}` : ''}`;
                   return (
                     <li
                       key={q.id}
                       aria-current={i === current ? 'step' : undefined}
-                      className={`border px-2 py-1 text-xs ${i === current ? 'border-stone-900 bg-stone-900 text-white' : done ? 'border-stone-300 bg-stone-50 text-stone-700' : 'border-stone-300 bg-white text-stone-700'}`}
+                      className={`border text-xs ${i === current ? 'border-stone-900 bg-stone-900 text-white' : done ? 'border-stone-300 bg-stone-50 text-stone-700' : 'border-stone-300 bg-white text-stone-700'}`}
                     >
-                      {i + 1}. {q.label}{rating ? ` · ${rating}` : ''}
+                      {done && i !== current ? (
+                        <button
+                          onClick={() => goToQuestion(i)}
+                          disabled={busy}
+                          aria-label={`Go back to question ${i + 1}: ${q.label}`}
+                          className="px-2 py-1 underline disabled:opacity-50"
+                        >
+                          {chipText}
+                        </button>
+                      ) : (
+                        <span className="block px-2 py-1">{chipText}</span>
+                      )}
                     </li>
                   );
                 })}
               </ol>
+              <p className="font-ui mt-2 text-xs text-stone-700">
+                You can go back to any finished question from the list above and revise it, if you have not used that question&apos;s revision yet.
+              </p>
               <p className="mt-4 text-[17px] leading-relaxed">{question.question}</p>
               <p className="font-ui mt-2 text-xs text-stone-700">
                 Write at least {MIN_WORDS} words. You get one revision after the coach responds.
@@ -636,6 +673,9 @@ export default function App() {
                 </p>
                 {attempt.feedback.quoteVerified && attempt.feedback.quote ? (
                   <figure className="mt-4">
+                    <p className="font-ui mb-1 text-xs font-semibold text-stone-700">
+                      {quoteRoleLabel(attempt.feedback.quoteRole)}
+                    </p>
                     <blockquote className="border-l-2 border-stone-400 bg-stone-50 py-2 pl-3 pr-2 text-[15px] leading-relaxed">
                       “{attempt.feedback.quote}”
                     </blockquote>
@@ -781,6 +821,26 @@ export default function App() {
               </table>
             </div>
 
+            <div className="mt-4">
+              <p className="font-ui text-xs text-stone-700">
+                Want to change an earlier answer? Go back to that question — the summary and Word document will use your latest answers.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {questions.map((q, i) => (
+                  (attempts[i] ?? []).length > 0 ? (
+                    <button
+                      key={q.id}
+                      onClick={() => goToQuestion(i)}
+                      disabled={busy}
+                      className="font-ui border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 disabled:opacity-50"
+                    >
+                      Back to Q{i + 1}: {q.label}
+                    </button>
+                  ) : null
+                ))}
+              </div>
+            </div>
+
             <h3 className="font-ui mt-6 text-sm font-semibold">Overall judgment</h3>
             <p className="mt-2 text-[15px] leading-relaxed">{overallQuestion.question}</p>
 
@@ -831,6 +891,9 @@ export default function App() {
                 </p>
                 {overall.feedback.quoteVerified && overall.feedback.quote ? (
                   <figure className="mt-4">
+                    <p className="font-ui mb-1 text-xs font-semibold text-stone-700">
+                      {quoteRoleLabel(overall.feedback.quoteRole)}
+                    </p>
                     <blockquote className="border-l-2 border-stone-400 bg-stone-50 py-2 pl-3 pr-2 text-[15px] leading-relaxed">
                       “{overall.feedback.quote}”
                     </blockquote>

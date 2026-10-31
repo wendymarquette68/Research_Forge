@@ -92,6 +92,35 @@ export function parseArticleMap(rawContent) {
   });
 }
 
+/**
+ * Build the map, retrying once when the model returns an unparseable
+ * response (empty, prose, or truncated JSON), mirroring the quote retry in
+ * the critique loop. If the retry also fails, the error tells the student
+ * what to do next instead of leaving a dead end.
+ */
+export async function getArticleMap({ callModel, title, authors, text }) {
+  const { messages, truncated } = buildArticleMapPrompt({ title, authors, text });
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const attemptMessages = attempt === 0
+      ? messages
+      : messages.map((m, i) => (i === 0
+        ? { ...m, content: `${m.content} IMPORTANT: your previous response could not be read as JSON. Return only valid JSON in exactly the shape requested — no markdown fences, no prose, no explanation. Keep summaries and key points brief so the JSON is complete.` }
+        : m));
+    const result = await callModel(attemptMessages, { maxTokens: 6144 });
+    try {
+      return { areas: parseArticleMap(result.content), truncated, model: result.model };
+    } catch (err) {
+      if (err.code !== 'BAD_MODEL_RESPONSE' && err.code !== 'EMPTY_MODEL_RESPONSE') throw err;
+      lastError = err;
+    }
+  }
+  const err = new Error('The model did not return a readable article map after two attempts. Please try again in a moment — if it keeps failing, paste the article text instead of using a file or demo.');
+  err.code = 'BAD_MODEL_RESPONSE';
+  err.cause = lastError;
+  throw err;
+}
+
 export function validateArticleInput(body) {
   const title = typeof body?.title === 'string' ? body.title.trim() : '';
   const authors = typeof body?.authors === 'string' ? body.authors.trim() : '';

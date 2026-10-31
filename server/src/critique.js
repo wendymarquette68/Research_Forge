@@ -122,11 +122,14 @@ export function parseFeedback(rawContent) {
   const conceptNote = rating === 'Proficient'
     ? ''
     : (typeof parsed.conceptNote === 'string' ? parsed.conceptNote.trim() : '');
+  const quoteRoleRaw = typeof parsed.quoteRole === 'string' ? parsed.quoteRole.trim().toLowerCase() : '';
+  const quoteRole = quoteRoleRaw === 'supports' || quoteRoleRaw === 'challenges' ? quoteRoleRaw : '';
   return {
     rating,
     gotRight,
     conceptNote,
     quote: typeof parsed.quote === 'string' ? parsed.quote.trim() : '',
+    quoteRole,
     followUp,
   };
 }
@@ -182,9 +185,9 @@ function buildCritiqueMessages({ title, question, mapArea, answer, articleText, 
     'Judge only the learner answer below, against the hidden article map excerpt and the article text.',
     'Rate the reasoning exactly one of: Emerging, Developing, Proficient. Emerging means the answer mostly retells or misses the question. Developing means it engages the article but is partial or shaky. Proficient means it makes a clear, article-grounded judgment.',
     'Say briefly what the learner got right. Do not supply the points they missed as a finished answer; your follow-up question should lead them to notice one gap themselves.',
-    'If the rating is Emerging or Developing, put a brief explanation in conceptNote before the follow-up question: in plain language, explain the one key term or concept the learner missed or used shakily (for example random assignment, a control group, sample size, or generalisability), in one or two short sentences a first-time reader can follow. Explain the term itself only — do not turn it into their answer or tell them what to write. If the rating is Proficient, conceptNote must be an empty string.',
-    'Quote exactly one passage, copied word for word from the article text, that supports or challenges the learner answer. Copy it character for character. Keep it under 240 characters. Never invent or tidy up a quote.',
-    'Ask exactly one follow-up question.',
+    'If the rating is Emerging or Developing, put a brief explanation in conceptNote before the follow-up question: in plain language, explain the one key term or concept the learner missed or used shakily (for example random assignment, a control group, sample size, or generalisability), in two to four short sentences a first-time reader can follow. Cover three things: what the term means, why it matters for judging this article, and whether a point like this normally belongs in an article review and where it goes in the review (which of the five areas, or the overall judgment, it belongs in). Explain the term itself only — do not turn it into their answer or tell them what to write. If the rating is Proficient, conceptNote must be an empty string.',
+    'Quote exactly one passage, copied word for word from the article text, that supports or challenges the learner answer. Copy it character for character. Keep it under 240 characters. Never invent or tidy up a quote. In quoteRole, say whether that passage "supports" or "challenges" the learner answer, so the learner knows why it is shown.',
+    'Ask exactly one follow-up question. Make it push deeper, not just ask for the next detail: lead the learner to think about other stakeholders (for example patients, clinicians, educators, services, or policymakers) and the overall impact of the research or intervention if its findings were acted on, in a way that fits this question area. Still do not supply the answer.',
     'Return only valid JSON. No markdown fences. No extra prose.',
     retryNote || '',
   ].join(' ');
@@ -205,7 +208,7 @@ function buildCritiqueMessages({ title, question, mapArea, answer, articleText, 
     answer,
     '',
     'Return JSON in exactly this shape:',
-    '{"rating":"Developing","gotRight":"one or two sentences on what the learner got right","conceptNote":"for Emerging or Developing only: one or two plain-language sentences explaining the key term or concept missed; empty string for Proficient","quote":"one verbatim passage","quoteReference":"section or passage the quote came from","followUp":"one follow-up question"}',
+    '{"rating":"Developing","gotRight":"one or two sentences on what the learner got right","conceptNote":"for Emerging or Developing only: plain-language explanation of the key term missed, why it matters, and where it goes in a review; empty string for Proficient","quote":"one verbatim passage","quoteReference":"section or passage the quote came from","quoteRole":"supports or challenges","followUp":"one deeper follow-up question about stakeholders and overall impact"}',
     '',
     'ARTICLE TEXT:',
     text,
@@ -242,6 +245,7 @@ export async function getCritiqueFeedback({ callModel, articleText, title, areaI
         quoteReference: findPassageReference(articleText, lastFeedback.quote),
         quoteVerified: true,
         quoteFlag: null,
+        quoteRole: lastFeedback.quoteRole,
         followUp: lastFeedback.followUp,
       };
     }
@@ -254,6 +258,7 @@ export async function getCritiqueFeedback({ callModel, articleText, title, areaI
     quoteReference: null,
     quoteVerified: false,
     quoteFlag: 'The coach quoted a passage that could not be verified word for word in your pasted article, so the quote has been withheld. The rest of this feedback still stands — check the point against the article yourself.',
+    quoteRole: '',
     followUp: lastFeedback.followUp,
   };
 }

@@ -177,6 +177,46 @@ test('getCritiqueFeedback returns the concept note for Developing and asks for i
   assert.match(promptText, /conceptNote/);
   assert.match(promptText, /Emerging or Developing/);
   assert.match(promptText, /plain language/i);
+  assert.match(promptText, /why (it|that point) matters/i);
+  assert.match(promptText, /where it goes/i);
+  assert.match(promptText, /stakeholders/i);
+  assert.match(promptText, /overall impact/i);
+});
+
+test('parseFeedback keeps a quote role of supports or challenges only', () => {
+  const supports = parseFeedback(JSON.stringify({
+    rating: 'Proficient', gotRight: 'x', quote: 'q', quoteRole: 'supports', followUp: 'y?',
+  }));
+  assert.equal(supports.quoteRole, 'supports');
+  const challenges = parseFeedback(JSON.stringify({
+    rating: 'Developing', gotRight: 'x', quote: 'q', quoteRole: 'Challenges', followUp: 'y?',
+  }));
+  assert.equal(challenges.quoteRole, 'challenges');
+  const other = parseFeedback(JSON.stringify({
+    rating: 'Developing', gotRight: 'x', quote: 'q', quoteRole: 'proves', followUp: 'y?',
+  }));
+  assert.equal(other.quoteRole, '');
+});
+
+test('getCritiqueFeedback returns the quote role with a verified quote', async () => {
+  const withRole = JSON.stringify({
+    rating: 'Developing', gotRight: 'You noticed the random assignment.',
+    conceptNote: 'A wait-list control group waits for the programme, so change can be compared.',
+    quote: 'Participants were randomly assigned to a walking group or a wait-list control group.',
+    quoteReference: 'Methods', quoteRole: 'supports',
+    followUp: 'Who else is affected if this is adopted?',
+  });
+  const fake = fakeModel([withRole]);
+  const fb = await getCritiqueFeedback({
+    callModel: fake.callModel,
+    articleText: ARTICLE,
+    title: 'Walking trial',
+    areaId: 'methods',
+    mapArea: null,
+    answer: LONG_ANSWER,
+  });
+  assert.equal(fb.quoteVerified, true);
+  assert.equal(fb.quoteRole, 'supports');
 });
 
 test('getCritiqueFeedback retries once when the first quote fails verification', async () => {

@@ -42,7 +42,16 @@ function labelled(label: string, text: string) {
 function quoteBlock(attempt: StoredAttempt) {
   const fb = attempt.feedback;
   if (fb.quoteVerified && fb.quote) {
+    const role = fb.quoteRole === 'supports'
+      ? 'From the article — this passage supports the learner’s answer:'
+      : fb.quoteRole === 'challenges'
+        ? 'From the article — this passage challenges the learner’s answer:'
+        : 'From the article — the passage the learner’s answer connects to:';
     return [
+      new Paragraph({
+        children: [new TextRun({ text: role, bold: true })],
+        spacing: { after: 60 },
+      }),
       new Paragraph({
         children: [new TextRun({ text: `“${fb.quote}”` })],
         spacing: { after: 60 },

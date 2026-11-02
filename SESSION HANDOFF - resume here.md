@@ -29,3 +29,6 @@ VERCEL WORKS (2026-10-28): the stable public link is https://researchforge-omega
 
 ## 2026-11-02 — header badge removal in progress
 User requests only removal of the global Phase 4 badge, no replacement. Repo main was clean and synchronized. Removed the single span in client/src/App.tsx. Next: client build, commit/push main, verify https://researchforge-omega.vercel.app intake and summary headers, including Start over. Preserve all other behavior.
+
+## 2026-11-02 — completed and verified live
+Badge removal committed and pushed to main as 3c36aca. TypeScript/Vite production build and git diff --check passed. GitHub Vercel status: success. Isolated Playwright browser verified the real production URL https://researchforge-omega.vercel.app: fresh intake, restored summary using a local test fixture, and blank intake after Back to Q1 > Start over > Yes, start over. All three headers equal exactly ResearchForge AI; zero header spans and zero phase labels; no browser page errors. Start over removed the fixture from localStorage. Screenshots saved in C:\Users\wendy\researchforge-live-intake.png, researchforge-live-summary.png, researchforge-live-after-start-over.png. No app changes beyond removing the three-line badge span.

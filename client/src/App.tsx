@@ -535,9 +535,6 @@ export default function App() {
       <header className="border-b border-stone-300 bg-white">
         <div className="mx-auto flex max-w-4xl flex-wrap items-baseline justify-between gap-2 px-5 py-4">
           <h1 className="text-xl font-bold tracking-tight">ResearchForge AI</h1>
-          <span className="font-ui text-xs text-stone-700">
-            Phase 4 — summary and export
-          </span>
         </div>
       </header>
 

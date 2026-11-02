@@ -26,3 +26,6 @@ VERCEL WORKS (2026-10-28): the stable public link is https://researchforge-omega
 - `node --test test/` fails on Windows here; the server test script uses `node --test "test/*.test.js"`.
 - The API key lives only in `server/.env` as `MODEL_API_KEY`. Never commit it.
 - `PROGRESS.md` is the standing continuity log; this file is only the crash-recovery snapshot.
+
+## 2026-11-02 — header badge removal in progress
+User requests only removal of the global Phase 4 badge, no replacement. Repo main was clean and synchronized. Removed the single span in client/src/App.tsx. Next: client build, commit/push main, verify https://researchforge-omega.vercel.app intake and summary headers, including Start over. Preserve all other behavior.

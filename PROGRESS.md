@@ -10,7 +10,7 @@
 - Every feedback message must quote a passage that exists word for word in the article. The server verifies each quote before it is shown.
 - This is research appraisal training for students. It is not medical advice.
 
-## Current state — Phase 4 COMPLETE (2026-10-27)
+## Current state — Phase 5 in progress (2026-11-02)
 
 - Phase 1 commit `557f73b` on `main`, pushed to `https://github.com/wendymarquette68/Research_Forge`. Phase 2 committed and pushed as `bcc42aa` on `main`. Phase 3 committed and pushed as `ad65e3e` on `main`. Phase 4 committed and pushed as `c72be28` on `main`.
 - Scaffold built: React + TypeScript + Tailwind front end (`client/`), Node.js + Express back end (`server/`).
@@ -18,6 +18,7 @@
 - Phase 2 design choices (settled 2026-10-27): intake is paste full text with title/authors fields (no PDF upload, no bundled demo article); the map is AI-extracted with verbatim quotes; scope stops at the map — no coaching, no quote verification, no saved sessions, no Word export yet.
 - Phase 3 built: the guided critique loop — five questions in order, 25-word minimum answers, JSON feedback (rating, what the learner got right, one verified verbatim quote with passage reference, one follow-up), one revision per question, and server-side word-for-word quote verification with one retry. The map stays hidden from the learner during the loop. See Verified — Phase 3 below.
 - Phase 4 built: summary screen with first and revised ratings side by side, an overall-judgment question rated the same way, a Download Word document button (docx library), and browser localStorage persistence so a reload keeps the student's work. See Verified — Phase 4 below.
+- Phase 5 in progress: README updated to describe the current intake options (DOI link, PDF upload, preloaded demo) and the responses-only Word export. See README wording section below.
 
 ## Verified
 
@@ -156,6 +157,10 @@
 - Correction to the DOI loading: students paste the article page link from the citation, and both a Springer article URL and a PMC article URL returned "That DOI could not be looked up." The field now accepts, in this normalisation order (server side, [doiArticle.js](/C:/Users/wendy/Research_Forge/server/src/doiArticle.js)): trim whitespace; a PMCID anywhere in the input (for example `https://pmc.ncbi.nlm.nih.gov/articles/PMC12081350/`); a DOI pattern (`10.` + digits + `/` + suffix) anywhere in the input (publisher URLs such as `https://link.springer.com/article/10.1186/s12909-025-08413-y`, with common page tails like `/full` or `/pdf` trimmed); then a bare DOI (including `doi.org`/`dx.doi.org` links and the `doi:` prefix). A PMCID resolves to its DOI through the NCBI ID converter and then runs the normal Crossref + Europe PMC flow; when the converter has no DOI, metadata and full text load from Europe PMC by PMCID instead. The paywalled fallback and the "That DOI could not be looked up" message for inputs matching none of these are unchanged. The field placeholder and hint now mention the article page link and PMC link. Server tests cover every accepted form (39/39 total).
 - Verified: all six forms (bare, doi.org, dx.doi.org, `doi:`, publisher URL, PMC URL, each also wrapped in surrounding whitespace) on both test articles returned the full text with title and authors locally (Sörman 27,367 characters, Zhang 30,490), the two screenshot pastes (Springer URL, PMC URL) filled title/authors/text/DOI in the browser, and after the push the same twelve combinations all passed on the live Vercel link.
 
+## README wording — Phase 5 status and responses-only export (2026-11-02)
+
+- Two wording updates in [README.md](/C:/Users/wendy/Research_Forge/README.md), nothing else changed in the file: the Status section now reads "Phase 5 in progress. The full flow: bring in one article by DOI link, PDF upload, or preloaded demo, work through the five-question guided critique, write an overall judgment, and download the session as a Word document." (replacing the Phase 4 / paste-in description), and the What it does section now adds "A second export has just the responses: the answers and ratings, without the coach text." after the overall-judgment sentence.
+
 ## What is next
 
 - Manual accessibility testing (keyboard-only walkthrough, one screen reader, Word-file screen-reader check), then any fixes those surface. The axe run and Word-structure check are done (see above). Tester-facing instructions for colleagues are at [TESTER-INSTRUCTIONS.md](/C:/Users/wendy/Research_Forge/TESTER-INSTRUCTIONS.md) (tasks, severity guide, feedback template); the accessibility checklist itself is [ACCESSIBILITY-TEST-SCRIPT.md](/C:/Users/wendy/Research_Forge/ACCESSIBILITY-TEST-SCRIPT.md).
@@ -185,3 +190,4 @@
 - 2026-10-31 — Coach prompt: added the explicit concept-to-area mapping to the Key idea instruction so concepts are placed by type (generalisability etc. → Limitations and applicability, even when raised on the Methods question). Verified live on Sörman Methods: the note places generalisability in Limitations and applicability, "not in Methods". Server tests 34/34, build passes. Committed and pushed as `78926f7` on `main`.
 - 2026-10-31 — Added "Download Word document (responses only)" on the summary: title, authors, DOI, the five questions with the latest answer and rating each, and the overall judgment with its rating, and no coach text. Verified by downloading and reading back both files from a completed session with a revision and from a full live Sörman session. Build passes, server tests 34/34. Committed and pushed as `7bd6524` on `main`.
 - 2026-10-31 — DOI field correction: it now accepts publisher article URLs containing a DOI and PMC article URLs (PMCID → NCBI ID converter → normal DOI flow, Europe PMC by PMCID as fallback), in the order trim → PMCID → DOI pattern anywhere → bare DOI. All six forms verified on both test articles locally, in the browser for the two screenshot pastes, and on the live link (12/12). Server tests 39/39, build passes. Committed and pushed as `2d10135` on `main`.
+- 2026-11-02 — README wording: Status now says Phase 5 in progress with intake by DOI link, PDF upload, or preloaded demo (was Phase 4 / paste in one article), and What it does now notes the second, responses-only export. No other README changes. This PROGRESS entry added with the same commit.

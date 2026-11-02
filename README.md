@@ -4,7 +4,7 @@ ResearchForge AI coaches students to assess a scholarly article's strength inste
 
 ## What it does
 
-The student works through five questions about one real article: research question and background, methods, evidence, findings, and limitations and applicability. After each answer, the app judges the reasoning against the article itself, quotes the passage that supports or contradicts it, and asks one follow-up question. The student may revise once per question. At the end, the student writes an overall judgment of the article's strength, the app rates it, and the session exports as a Word document.
+The student works through five questions about one real article: research question and background, methods, evidence, findings, and limitations and applicability. After each answer, the app judges the reasoning against the article itself, quotes the passage that supports or contradicts it, and asks one follow-up question. The student may revise once per question. At the end, the student writes an overall judgment of the article's strength, the app rates it, and the session exports as a Word document. A second export has just the responses: the answers and ratings, without the coach text.
 
 Three rules define the app:
 - Every feedback message quotes a passage that exists word for word in the article. The server verifies each quote before it is shown.
@@ -37,7 +37,7 @@ The project plan and the article-review rubric were authored by Wendy Whitner be
 
 ## Status
 
-Phase 4 complete: the full flow — paste in one article, work through the five-question guided critique, write an overall judgment, and download the session as a Word document. Work is kept in the browser, so a reload does not lose it. Setup: (1) Put your Meta Model API key in server/.env as MODEL_API_KEY (gitignored) - see server/.env.example. (2) npm run install:all  (3) npm run dev:server  (4) npm run dev:client, then open http://localhost:5173 in a browser. Test call: npm run test-call (needs the key).
+Phase 5 in progress. The full flow: bring in one article by DOI link, PDF upload, or preloaded demo, work through the five-question guided critique, write an overall judgment, and download the session as a Word document. Work is kept in the browser, so a reload does not lose it. Setup: (1) Put your Meta Model API key in server/.env as MODEL_API_KEY (gitignored) - see server/.env.example. (2) npm run install:all  (3) npm run dev:server  (4) npm run dev:client, then open http://localhost:5173 in a browser. Test call: npm run test-call (needs the key).
 
 ## Deploy on Vercel
 

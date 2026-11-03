@@ -1131,6 +1131,13 @@ export default function App() {
                 {downloading ? 'Building document…' : 'Download Word document (responses only)'}
               </button>
               <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="font-ui border border-stone-900 bg-white px-4 py-2 text-sm font-medium text-stone-900"
+              >
+                Reload saved work
+              </button>
+              <button
                 onClick={startAgain}
                 className="font-ui border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700"
               >

@@ -161,6 +161,11 @@
 
 - Two wording updates in [README.md](/C:/Users/wendy/Research_Forge/README.md), nothing else changed in the file: the Status section now reads "Phase 5 in progress. The full flow: bring in one article by DOI link, PDF upload, or preloaded demo, work through the five-question guided critique, write an overall judgment, and download the session as a Word document." (replacing the Phase 4 / paste-in description), and the What it does section now adds "A second export has just the responses: the answers and ratings, without the coach text." after the overall-judgment sentence.
 
+## Reload saved work button on summary (2026-11-03)
+
+- Added a visible "Reload saved work" button on the Critique summary screen, next to the Download Word document buttons in [App.tsx](/C:/Users/wendy/Research_Forge/client/src/App.tsx). It is a real `<button type="button">` (keyboard accessible, always enabled) whose click runs `window.location.reload()`; the saved session restores from localStorage, so the summary returns showing the work is still there. No change to the localStorage save/restore logic, to any other screen, or to the Download buttons.
+- Verified: `tsc -b && vite build` passes and the built bundle contains "Reload saved work" between the two Download buttons with no `MODEL_API_KEY` and no `api.meta.ai` string; server tests 39/39 pass.
+
 ## What is next
 
 - Manual accessibility testing (keyboard-only walkthrough, one screen reader, Word-file screen-reader check), then any fixes those surface. The axe run and Word-structure check are done (see above). Tester-facing instructions for colleagues are at [TESTER-INSTRUCTIONS.md](/C:/Users/wendy/Research_Forge/TESTER-INSTRUCTIONS.md) (tasks, severity guide, feedback template); the accessibility checklist itself is [ACCESSIBILITY-TEST-SCRIPT.md](/C:/Users/wendy/Research_Forge/ACCESSIBILITY-TEST-SCRIPT.md).
@@ -191,3 +196,4 @@
 - 2026-10-31 — Added "Download Word document (responses only)" on the summary: title, authors, DOI, the five questions with the latest answer and rating each, and the overall judgment with its rating, and no coach text. Verified by downloading and reading back both files from a completed session with a revision and from a full live Sörman session. Build passes, server tests 34/34. Committed and pushed as `7bd6524` on `main`.
 - 2026-10-31 — DOI field correction: it now accepts publisher article URLs containing a DOI and PMC article URLs (PMCID → NCBI ID converter → normal DOI flow, Europe PMC by PMCID as fallback), in the order trim → PMCID → DOI pattern anywhere → bare DOI. All six forms verified on both test articles locally, in the browser for the two screenshot pastes, and on the live link (12/12). Server tests 39/39, build passes. Committed and pushed as `2d10135` on `main`.
 - 2026-11-02 — README wording: Status now says Phase 5 in progress with intake by DOI link, PDF upload, or preloaded demo (was Phase 4 / paste in one article), and What it does now notes the second, responses-only export. No other README changes. This PROGRESS entry added with the same commit.
+- 2026-11-03 — Added "Reload saved work" button on the summary screen next to the Download Word document buttons (`window.location.reload()`, localStorage restore unchanged). Build passes, server tests 39/39.

@@ -1138,6 +1138,13 @@ export default function App() {
                 Reload saved work
               </button>
               <button
+                type="button"
+                onClick={startAgain}
+                className="font-ui border border-stone-900 bg-white px-4 py-2 text-sm font-medium text-stone-900"
+              >
+                Clear my work
+              </button>
+              <button
                 onClick={startAgain}
                 className="font-ui border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700"
               >
